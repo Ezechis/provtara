@@ -2,15 +2,18 @@
 
 Vercel is built for static sites and serverless Node/Next. This app is **Flask + SQLite + live job pulls** (requests that can take several seconds). Vercel’s Python functions are short-lived, have no durable disk, and would drop the vacancy database on every cold start. Same idea as Vercel — git push, HTTPS URL, test on a phone — lives on **Render free** (or Railway / Fly).
 
-**Do not share a tunnel.** `localhost.run`, localtunnel, and Cloudflare quick tunnels die when this PC sleeps, and many phones block them. Share the `onrender.com` URL instead.
+**Do not share a tunnel.** `localhost.run`, localtunnel, and Cloudflare quick tunnels die when this PC sleeps, and many phones block them.
+
+**Share this:** https://provtara.onrender.com
+
+Hosted on Render free (Frankfurt). Dashboard: https://dashboard.render.com/web/srv-da4ai97qj5pc73blfs6g  
+Repo: https://github.com/Ezechis/provtara
+
+First visit after 15 minutes idle can take about a minute (spin-up). Uploaded résumés live in SQLite on an ephemeral disk, so they reset when the service sleeps.
 
 ## Lasting: Render free
 
-1. Push `C:\Users\Ezeking\Grok\Job_Portal` to GitHub.
-2. [render.com](https://render.com) → New → Blueprint → this repo (`render.yaml`).
-3. Free web service. Open the `onrender.com` URL on your phone.
-
-`run.py` already listens on `0.0.0.0` and `$PORT`.
+Already live. Git push to `main` on `Ezechis/provtara` redeploys. Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 
 ## Job sources (no API keys)
 
