@@ -6,6 +6,12 @@ Candidate submits a real resume first. The system particularizes that resume and
 
 Brand locked: **Provtara**. Phase 0 CLI + Phase 1 web workshop (PDF/DOCX parse, public vacancies from Remotive / Arbeitnow / RemoteOK / Jobicy, Apply directly + Auto-apply). Domains are **not** purchased. Vercel is the wrong runtime — Flask + SQLite belongs on Render (or Railway / Fly). Tunnels into this PC are not a shareable demo. See `DEPLOY.md`.
 
+Code: [github.com/Ezechis/provtara](https://github.com/Ezechis/provtara)
+
+Share the Render URL, not a tunnel. One-click deploy (GitHub login, free plan, no card):
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ezechis/provtara)
+
 ## Read in this order
 
 1. `BRAND.md` — locked name: **Provtara**
