@@ -1,0 +1,13 @@
+id: ng-kuda-mobile
+title: Mobile Engineer
+company: Kuda
+apply_url: https://kuda.com/careers
+remote: false
+location: Lagos, Nigeria
+work_authorization_any_of: [NG, ANY]
+min_years: 2
+must_haves: [REST]
+nice_to_haves: [Kotlin, Swift]
+hook: Digital bank in Lagos. Confirm the live mobile opening on Kuda careers before you submit.
+description: >
+  On-site Lagos. Mobile clients talking to REST. Official Kuda careers page.

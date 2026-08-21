@@ -6,7 +6,7 @@
   <title>{% block title %}Provtara{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
@@ -14,14 +14,18 @@
     <aside class="rail">
       <a class="mark" href="{{ url_for('landing') }}">Provtara</a>
       <p class="mark-sub">IT jobs. Real skills. Nothing invented.</p>
-      <ol class="steps">
-        <li><a href="{{ url_for('vacancies') }}">Vacancies</a></li>
-        <li><a href="{{ url_for('upload') }}">Upload</a></li>
-        <li><a href="{{ url_for('confirm') }}">Confirm</a></li>
-        <li><a href="{{ url_for('jobs') }}">Jobs you can do</a></li>
-        <li><a href="{{ url_for('auto_apply') }}">Auto-apply</a></li>
-        <li><a href="{{ url_for('templates_index') }}">Templates</a></li>
-      </ol>
+      <nav class="rail-actions" aria-label="Apply">
+        <a href="{{ url_for('auto_apply') }}">Auto-Apply</a>
+        <a href="{{ url_for('upload') }}">Upload Your Resume</a>
+      </nav>
+      <nav class="rail-markets" aria-label="Job markets">
+        {% for m in markets %}
+          <a
+            class="rail-market{% if m.featured %} rail-ng{% endif %}{% if active_region == m.id %} is-on{% endif %}"
+            href="{{ url_for('vacancies', region=m.id) }}"
+          >{{ m.label }}</a>
+        {% endfor %}
+      </nav>
       {% if user_email %}
       <form class="rail-out" method="post" action="{{ url_for('logout') }}">
         <span>{{ user_email }}</span>
@@ -42,7 +46,7 @@
     <aside class="tray" aria-label="CV and cover letter templates">
       <details open>
         <summary>CV &amp; letter templates</summary>
-        <p class="tray-lead">By IT title. Fill only what you have done.</p>
+        <p class="tray-lead">Worked example first. Fill-in template under it. Copy a line only if you can evidence it.</p>
         {% for family, roles in template_groups %}
           <p class="tray-family">{{ family }}</p>
           <ul class="tray-list">

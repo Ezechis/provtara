@@ -1,20 +1,42 @@
 {% extends "base.html" %}
-{% block title %}IT vacancies — Provtara{% endblock %}
+{% block title %}{{ heading }} — Provtara{% endblock %}
 {% block body %}
-<h1>IT vacancies</h1>
-<p>IT jobs published from verified <a href="{{ url_for('boards') }}">boards</a>.</p>
+{% if region == "ng" %}
+<p class="ng-banner">Nigerian IT Jobs — on-site, remote, and hybrid roles tagged to Nigeria.</p>
+{% endif %}
+<h1>{{ heading }}</h1>
+<p>IT jobs published from verified <a href="{{ url_for('boards') }}">boards</a>, plus career pages for African employers. Confirm the live opening before you submit.</p>
 <p class="muted">Apply directly on the official listing, or use Auto-apply to prepare a true pack first.</p>
-<form method="post" action="{{ url_for('jobs_refresh') }}">
-  <input type="hidden" name="next" value="{{ url_for('vacancies') }}">
-  <button class="btn secondary" type="submit">Refresh</button>
-  <span class="meta">{{ ingested_count }} live listings</span>
+
+<form class="job-search" method="get" action="{{ url_for('vacancies') }}" role="search">
+  {% if region %}<input type="hidden" name="region" value="{{ region }}">{% endif %}
+  {% if mode %}<input type="hidden" name="mode" value="{{ mode }}">{% endif %}
+  <label class="sr-only" for="vac-q">Search job roles</label>
+  <input id="vac-q" name="q" type="search" value="{{ q }}" placeholder="Search job roles">
+  <button class="btn" type="submit">Search</button>
 </form>
+
+<div class="modes modes-compact" aria-label="Work arrangement">
+  {% for m in work_modes %}
+    <a class="mode mode-{{ m.id }}{% if mode == m.id %} is-on{% endif %}" href="{{ url_for('vacancies', region=region or none, mode=m.id, q=q or none) }}">{{ m.label }}</a>
+  {% endfor %}
+  {% if mode or region or q %}
+    <a class="mode mode-clear" href="{{ url_for('vacancies') }}">All jobs</a>
+  {% endif %}
+</div>
+
+<form method="post" action="{{ url_for('jobs_refresh') }}">
+  <input type="hidden" name="next" value="{{ request.full_path }}">
+  <button class="btn secondary" type="submit">Refresh</button>
+  <span class="meta">{{ ingested_count }} live board listings · {{ cards|length }} showing</span>
+</form>
+
 <div class="cards">
   {% for card in cards %}
     <article class="card">
-      <p class="proof-mark">via {{ card.source }}</p>
+      <p class="proof-mark">via {{ card.source }} · {{ card.mode }}</p>
       <h2>{{ card.job.title }}</h2>
-      <p class="meta">{{ card.job.company }} · {% if card.job.remote %}Remote{% else %}{{ card.job.location }}{% endif %}</p>
+      <p class="meta">{{ card.job.company }} · {{ card.job.location or ("Remote" if card.job.remote else "Location not listed") }}</p>
       <p class="actions">
         <a class="btn" href="{{ card.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
         <a class="btn secondary" href="{{ url_for('auto_apply', job=card.job.id) }}">Auto-apply</a>
@@ -24,6 +46,6 @@
   {% endfor %}
 </div>
 {% if not cards %}
-<p>No listings yet. Refresh the boards, or the curated sample jobs will appear from this workshop.</p>
+<p>No listings in this cut yet. Try another market on the left, clear the search, or refresh the boards.</p>
 {% endif %}
 {% endblock %}

@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from phase1.templates_catalog import ROLES, get_role, grouped_roles, letter_markdown, resume_markdown
+from phase1.templates_catalog import (
+    ROLES,
+    example_letter,
+    example_resume,
+    get_role,
+    grouped_roles,
+    letter_markdown,
+    resume_markdown,
+)
 from phase1.web import create_app
 
 
@@ -27,6 +35,17 @@ def test_resume_is_a_template_not_a_fake_job():
     assert "Backend Engineer" in text
     assert "Acme" not in text
     assert "I invented" not in text.lower()
+
+
+def test_example_resume_is_a_person_not_brackets():
+    role = get_role("backend-engineer")
+    text = example_resume(role)
+    assert "[Your name]" not in text
+    assert "Paystack" in text or "Interswitch" in text
+    assert "Backend Engineer" in text
+    letter = example_letter(role)
+    assert letter.startswith("Dear hiring team")
+    assert "I will submit this pack myself" in letter
 
 
 def test_letter_names_the_gap_rule():
@@ -60,10 +79,14 @@ def test_templates_index_and_rail(tmp_path):
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert "DevOps Engineer" in html
+    assert "Worked example" in html
+    assert "Fill-in template" in html
     assert "[Your name]" in html
+    assert "Andela" in html or "SystemSpecs" in html
     dl = client.get("/templates/devops-engineer/resume.md")
     assert dl.status_code == 200
     assert b"[Your name]" in dl.data
+    assert b"worked example" in dl.data.lower()
     letter = client.get("/templates/network-engineer/letter.md")
     assert letter.status_code == 200
     assert b"Network Engineer" in letter.data

@@ -1,0 +1,13 @@
+id: za-takealot-platform
+title: Platform Engineer
+company: Takealot
+apply_url: https://www.takealot.com/careers
+remote: false
+location: Cape Town, South Africa
+work_authorization_any_of: [ZA, ANY]
+min_years: 3
+must_haves: [Linux, Python]
+nice_to_haves: [AWS, Docker]
+hook: South African commerce platform. Confirm the live opening on Takealot careers.
+description: >
+  On-site Cape Town. Linux, Python services. Official Takealot careers page.

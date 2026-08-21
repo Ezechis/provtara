@@ -38,8 +38,17 @@ def test_landing_states_the_promise(client):
     assert 'href="/boards"' in r.get_data(as_text=True)
     assert "apply directly" in body
     assert "auto-apply" in body
+    home = r.get_data(as_text=True)
+    assert "Nigerian IT Vacancies" in home
+    assert "Upload Your Resume" in home
+    assert "On-Site Jobs" in home
+    assert "Work From Anywhere" in home
+    assert 'name="q"' in home
+    assert ">Vacancies<" not in home
+    assert ">Confirm<" not in home
+    assert ">Jobs you can do<" not in home
     for name in ("Remotive", "Arbeitnow", "RemoteOK", "Jobicy"):
-        assert name not in r.get_data(as_text=True)
+        assert name not in home
 
 
 def test_register_required_before_upload(client):

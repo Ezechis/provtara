@@ -787,3 +787,172 @@ def letter_markdown(role: RoleTemplate) -> str:
         f"[Your name]\n"
         f"[email]\n"
     )
+
+
+# Worked examples: a person who already has this title's evidence.
+# Candidates measure their own bullets against these. Do not copy unearned claims.
+
+_PERSONAS: tuple[tuple[str, str, str, str, str], ...] = (
+    ("Chioma Okonkwo", "Lagos, Nigeria", "chioma.okonkwo@example.com", "NG", "University of Lagos"),
+    ("Adewale Balogun", "Abuja, Nigeria", "adewale.balogun@example.com", "NG", "University of Ibadan"),
+    ("Ngozi Eze", "Port Harcourt, Nigeria", "ngozi.eze@example.com", "NG", "University of Nigeria, Nsukka"),
+    ("Yusuf Abdullahi", "Kano, Nigeria", "yusuf.abdullahi@example.com", "NG", "Ahmadu Bello University"),
+    ("Amina Bello", "Lagos, Nigeria", "amina.bello@example.com", "NG", "Covenant University"),
+    ("Ibrahim Suleiman", "Abuja, Nigeria", "ibrahim.suleiman@example.com", "NG", "University of Jos"),
+    ("Wanjiku Mwangi", "Nairobi, Kenya", "wanjiku.mwangi@example.com", "KE", "University of Nairobi"),
+    ("Kwame Mensah", "Accra, Ghana", "kwame.mensah@example.com", "GH", "KNUST"),
+    ("Thandiwe Nkosi", "Johannesburg, South Africa", "thandiwe.nkosi@example.com", "ZA", "University of Cape Town"),
+    ("Tunde Adebayo", "London / Lagos", "tunde.adebayo@example.com", "NG, UK", "Obafemi Awolowo University"),
+)
+
+_SHOPS: dict[str, tuple[tuple[str, str, str, str], tuple[str, str, str, str]]] = {
+    "Networking & infrastructure": (
+        ("MainOne", "Lagos", "2019", "present"),
+        ("MTN Nigeria", "Lagos", "2016", "2019"),
+    ),
+    "Programming": (
+        ("Paystack", "Lagos", "2019", "present"),
+        ("Interswitch", "Lagos", "2016", "2019"),
+    ),
+    "Mobile": (
+        ("Kuda", "Lagos", "2020", "present"),
+        ("Carbon", "Lagos", "2017", "2020"),
+    ),
+    "DevOps & cloud": (
+        ("Andela", "Lagos / remote", "2019", "present"),
+        ("SystemSpecs", "Lagos", "2016", "2019"),
+    ),
+    "AI / ML": (
+        ("Data Science Nigeria", "Lagos", "2020", "present"),
+        ("Interswitch", "Lagos", "2017", "2020"),
+    ),
+    "Data": (
+        ("Flutterwave", "Lagos", "2020", "present"),
+        ("Paystack", "Lagos", "2017", "2020"),
+    ),
+    "Security": (
+        ("Interswitch", "Lagos", "2019", "present"),
+        ("First Bank of Nigeria — IT", "Lagos", "2016", "2019"),
+    ),
+    "Quality": (
+        ("Andela", "Lagos / remote", "2019", "present"),
+        ("Cowrywise", "Lagos", "2016", "2019"),
+    ),
+    "Architecture": (
+        ("Flutterwave", "Lagos", "2019", "present"),
+        ("Interswitch", "Lagos", "2015", "2019"),
+    ),
+    "IT operations": (
+        ("Access Bank — Technology", "Lagos", "2018", "present"),
+        ("MainOne", "Lagos", "2015", "2018"),
+    ),
+    "Databases & enterprise": (
+        ("SystemSpecs", "Lagos", "2018", "present"),
+        ("GTBank — Technology", "Lagos", "2015", "2018"),
+    ),
+    "Specialized": (
+        ("Andela", "Lagos / remote", "2019", "present"),
+        ("CcHUB", "Lagos", "2016", "2019"),
+    ),
+}
+
+
+def _persona(role: RoleTemplate) -> tuple[str, str, str, str, str]:
+    return _PERSONAS[sum(ord(c) for c in role.id) % len(_PERSONAS)]
+
+
+def _shops(role: RoleTemplate) -> tuple[tuple[str, str, str, str], tuple[str, str, str, str]]:
+    return _SHOPS.get(role.family, _SHOPS["Programming"])
+
+
+def _tool_list(role: RoleTemplate) -> list[str]:
+    parts = [p.strip() for p in role.tools.split(",") if p.strip()]
+    return parts or ["Linux", "Git"]
+
+
+def example_resume(role: RoleTemplate) -> str:
+    name, city, email, auth, school = _persona(role)
+    current, earlier = _shops(role)
+    tools = _tool_list(role)
+    t0, t1, t2 = (tools + ["Git", "Linux", "documentation"])[:3]
+    skill_line = ", ".join(tools[:8])
+    return (
+        f"{name}\n"
+        f"{email} · {city}\n"
+        f"Work authorization: {auth}\n"
+        f"\n"
+        f"SUMMARY\n"
+        f"{role.title} with nine years in production systems. "
+        f"I am hired for {role.focus}. "
+        f"Career start: 2016. Every tool below appears in a bullet.\n"
+        f"\n"
+        f"SKILLS\n"
+        f"{skill_line}\n"
+        f"\n"
+        f"EXPERIENCE\n"
+        f"Senior {role.title}, {current[0]} ({current[2]} – {current[3]}) — {current[1]}\n"
+        f"- Own {role.focus} for a live service: {t0} in production, not a lab. "
+        f"On-call notes name the failure, then the fix.\n"
+        f"- Cut a recurring incident class by changing how we used {t1}; "
+        f"the next person ran the same playbook without asking me.\n"
+        f"- Shipped a change that depended on {t2}, with a rollback that we actually used once.\n"
+        f"- Review the work of two engineers on the same stack. I do not sign off a keyword with no system behind it.\n"
+        f"\n"
+        f"{role.title}, {earlier[0]} ({earlier[2]} – {earlier[3]}) — {earlier[1]}\n"
+        f"- Built and ran the {role.focus} path using {t0} and {t1}. "
+        f"When it broke at 2 a.m., I was the person who could recover it.\n"
+        f"- Wrote the internal guide for {t2} that new hires still open in week one.\n"
+        f"- Left the job with backups, access lists, and a successor who could deploy without me.\n"
+        f"\n"
+        f"EDUCATION\n"
+        f"B.Sc. Computer Science, {school}, 2016\n"
+        f"\n"
+        f"This example is a measurement stick. Copy a line only if you can point at the system, the date, and the person who saw you do it.\n"
+    )
+
+
+def example_letter(role: RoleTemplate) -> str:
+    name, city, email, _auth, _school = _persona(role)
+    current, earlier = _shops(role)
+    tools = _tool_list(role)
+    t0, t1 = (tools + ["Git", "Linux"])[:2]
+    return (
+        f"Dear hiring team,\n"
+        f"\n"
+        f"You are hiring a {role.title} whose job is {role.focus}. "
+        f"That is the work I have been paid to do since 2016, most recently at {current[0]} in {current[1]}.\n"
+        f"\n"
+        f"At {current[0]} I own the live path, not a slide about it. "
+        f"I run {t0} in production. When we had a class of failures tied to {t1}, "
+        f"I changed the design, wrote the playbook, and stayed on the rotation until the next person could run it cold. "
+        f"That is the standard I will bring to your posting: a system I can name, a change I can date, and an outcome someone else can verify.\n"
+        f"\n"
+        f"Before that, at {earlier[0]}, I was the {role.title} who recovered the same class of work at 2 a.m. "
+        f"I do not list a tool I have not used on a system that billed real users. "
+        f"If your role requires something I have not run in production, I will say so in this letter and leave it off the résumé.\n"
+        f"\n"
+        f"I will submit this pack myself.\n"
+        f"\n"
+        f"{name}\n"
+        f"{email} · {city}\n"
+    )
+
+
+def resume_pack_markdown(role: RoleTemplate) -> str:
+    return (
+        f"# {role.title} — worked example\n\n"
+        f"{example_resume(role)}\n"
+        f"---\n\n"
+        f"# {role.title} — fill-in template\n\n"
+        f"{resume_markdown(role)}"
+    )
+
+
+def letter_pack_markdown(role: RoleTemplate) -> str:
+    return (
+        f"# {role.title} cover letter — worked example\n\n"
+        f"{example_letter(role)}\n"
+        f"---\n\n"
+        f"# {role.title} cover letter — fill-in template\n\n"
+        f"{letter_markdown(role)}"
+    )

@@ -5,18 +5,23 @@
 <h1>{{ role.title }}</h1>
 <p>{{ role.focus | capitalize }}.</p>
 <p class="muted">Typical tools in this title — list them on the résumé only if a bullet proves you used them: {{ role.tools }}.</p>
+<p class="measure">The worked example is a candidate who already has this job’s evidence. Measure your own bullets against it. Then use the fill-in template at the bottom. Do not copy a claim you cannot prove.</p>
 <p class="actions">
   <a class="btn" href="{{ url_for('template_resume', role_id=role.id) }}">Download résumé</a>
   <a class="btn secondary" href="{{ url_for('template_letter', role_id=role.id) }}">Download cover letter</a>
 </p>
-<div class="pack">
-  <div id="resume">
-    <h2>Résumé template</h2>
-    <pre>{{ resume }}</pre>
-  </div>
-  <div id="letter">
-    <h2>Cover letter template</h2>
-    <pre>{{ letter }}</pre>
-  </div>
-</div>
+
+<section id="resume" class="specimen">
+  <h2>Worked example — résumé</h2>
+  <pre>{{ example_resume }}</pre>
+  <h2>Fill-in template — résumé</h2>
+  <pre>{{ resume }}</pre>
+</section>
+
+<section id="letter" class="specimen">
+  <h2>Worked example — cover letter</h2>
+  <pre>{{ example_letter }}</pre>
+  <h2>Fill-in template — cover letter</h2>
+  <pre>{{ letter }}</pre>
+</section>
 {% endblock %}

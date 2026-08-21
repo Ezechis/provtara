@@ -1,0 +1,13 @@
+id: ke-safaricom-backend
+title: Software Engineer
+company: Safaricom
+apply_url: https://www.safaricom.co.ke/careers
+remote: false
+location: Nairobi, Kenya
+work_authorization_any_of: [KE, ANY]
+min_years: 3
+must_haves: [Java, SQL]
+nice_to_haves: [REST]
+hook: Telco and M-PESA stack in Nairobi. Confirm the live engineering opening on Safaricom careers.
+description: >
+  On-site Nairobi. Java services, SQL. Official Safaricom careers page.

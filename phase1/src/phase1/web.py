@@ -25,11 +25,16 @@ from phase0.pack import prepare_pack
 from phase0.qualify import load_profile, profile_from_dict, profile_to_dict, qualify
 from phase1.catalog import all_jobs, get_job
 from phase1.ingest import BOARD_HOMES, SOURCES, fetch_free_boards, job_source
+from phase1.markets import MARKETS, WORK_MODES, filter_jobs, market_label, work_mode
 from phase1.templates_catalog import (
+    example_letter,
+    example_resume,
     get_role,
     grouped_roles,
     letter_markdown,
+    letter_pack_markdown,
     resume_markdown,
+    resume_pack_markdown,
 )
 from phase1.parse import extract_upload, grounded_skills, propose_from_text
 from phase1.store import (
@@ -137,6 +142,10 @@ def create_app(test_config: dict | None = None) -> Flask:
             "job_source": job_source,
             "sources": SOURCES,
             "template_groups": grouped_roles(),
+            "markets": MARKETS,
+            "work_modes": WORK_MODES,
+            "active_region": request.args.get("region") or "",
+            "active_mode": request.args.get("mode") or "",
         }
 
     def ingested_jobs():
@@ -335,6 +344,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         return render_template(
             "template.html",
             role=role,
+            example_resume=example_resume(role),
+            example_letter=example_letter(role),
             resume=resume_markdown(role),
             letter=letter_markdown(role),
         )
@@ -345,7 +356,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         if role is None:
             return Response("No such template", status=404)
         return Response(
-            resume_markdown(role),
+            resume_pack_markdown(role),
             mimetype="text/markdown",
             headers={"Content-Disposition": f"attachment; filename={role.id}-resume.md"},
         )
@@ -356,7 +367,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         if role is None:
             return Response("No such template", status=404)
         return Response(
-            letter_markdown(role),
+            letter_pack_markdown(role),
             mimetype="text/markdown",
             headers={"Content-Disposition": f"attachment; filename={role.id}-cover-letter.md"},
         )
@@ -373,12 +384,31 @@ def create_app(test_config: dict | None = None) -> Flask:
     def vacancies():
         maybe_ingest()
         ingested = ingested_jobs()
-        jobs = all_jobs(app.config["JOBS_DIR"], ingested)
-        cards = [{"job": j, "source": job_source(j)} for j in jobs]
+        region = (request.args.get("region") or "").strip()
+        mode = (request.args.get("mode") or "").strip()
+        q = (request.args.get("q") or "").strip()
+        jobs = filter_jobs(
+            all_jobs(app.config["JOBS_DIR"], ingested),
+            region=region,
+            mode=mode,
+            q=q,
+        )
+        cards = [
+            {"job": j, "source": job_source(j), "mode": work_mode(j)}
+            for j in jobs
+        ]
+        title = market_label(region) if region else "IT vacancies"
+        if mode:
+            labels = {m["id"]: m["label"] for m in WORK_MODES}
+            title = f"{labels.get(mode, mode)} · {title}"
         return render_template(
             "vacancies.html",
             cards=cards,
             ingested_count=len(ingested),
+            heading=title,
+            q=q,
+            region=region,
+            mode=mode,
         )
 
     @app.get("/vacancies/<job_id>")
