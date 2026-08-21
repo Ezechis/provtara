@@ -25,6 +25,9 @@ def test_families_cover_the_asked_fields():
     assert "DevOps & cloud" in names
     assert "AI / ML" in names
     assert "Data" in names
+    assert "Web3" in names
+    assert get_role("smart-contract-engineer") is not None
+    assert get_role("solidity-developer") is not None
 
 
 def test_resume_is_a_template_not_a_fake_job():

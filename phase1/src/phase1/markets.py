@@ -22,6 +22,34 @@ WORK_MODES: tuple[dict, ...] = (
     {"id": "anywhere", "label": "Work From Anywhere"},
 )
 
+ECOSYSTEMS: tuple[dict, ...] = (
+    {"id": "web3", "label": "Web3 IT Vacancies"},
+)
+
+_WEB3_MARKERS = (
+    "web3",
+    "solidity",
+    "ethereum",
+    "smart contract",
+    "blockchain",
+    "defi",
+    "evm",
+    "solana",
+    "cosmos sdk",
+    "substrate",
+    "polygon",
+    "zero knowledge",
+    "zk-snark",
+    "foundry",
+    "hardhat",
+    "openzeppelin",
+    "subgraph",
+    "the graph",
+    "walletconnect",
+    "validator",
+    "layer 2",
+)
+
 _MARKET_WORDS: dict[str, tuple[str, ...]] = {
     "ng": (
         "nigeria",
@@ -137,6 +165,13 @@ def work_mode(job: Job) -> str:
     return "onsite"
 
 
+def ecosystem_id(job: Job) -> str:
+    blob = _blob(job)
+    if any(token in blob for token in _WEB3_MARKERS):
+        return "web3"
+    return ""
+
+
 def market_label(mid: str) -> str:
     for item in MARKETS:
         if item["id"] == mid:
@@ -150,6 +185,7 @@ def filter_jobs(
     region: str = "",
     mode: str = "",
     q: str = "",
+    ecosystem: str = "",
 ) -> list[Job]:
     needle = " ".join((q or "").lower().split())
     out: list[Job] = []
@@ -157,6 +193,8 @@ def filter_jobs(
         if region and market_id(job) != region:
             continue
         if mode and work_mode(job) != mode:
+            continue
+        if ecosystem and ecosystem_id(job) != ecosystem:
             continue
         if needle:
             hay = f"{job.title} {job.company} {job.location} {job.hook} {job.description}".lower()

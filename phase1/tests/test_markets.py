@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from phase1.catalog import load_jobs
-from phase1.markets import filter_jobs, market_id, work_mode
+from phase1.markets import ecosystem_id, filter_jobs, market_id, work_mode
 from phase0.qualify import job_from_dict
 
 JOBS = Path(__file__).resolve().parents[1] / "data" / "jobs"
@@ -19,6 +19,9 @@ def test_seeded_african_markets_exist():
     ng = [j for j in jobs if market_id(j) == "ng"]
     assert any(work_mode(j) == "onsite" for j in ng)
     assert any("Lagos" in (j.location or "") for j in ng)
+    web3 = [j for j in jobs if ecosystem_id(j) == "web3"]
+    assert web3
+    assert filter_jobs(jobs, ecosystem="web3")
 
 
 def test_filter_region_and_search():

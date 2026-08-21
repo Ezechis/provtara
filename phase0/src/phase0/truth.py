@@ -56,6 +56,11 @@ SKILL_CATALOG = (
     "TypeScript",
     "React",
     "Node",
+    "Solidity",
+    "Ethereum",
+    "Foundry",
+    "Hardhat",
+    "EVM",
 )
 
 

@@ -1,0 +1,14 @@
+id: web3-nethermind-protocol
+title: Protocol Engineer
+company: Nethermind
+apply_url: https://www.nethermind.io/careers
+remote: true
+location: Remote (web3)
+work_authorization_any_of: [ANY]
+min_years: 3
+must_haves: [Linux, Go]
+nice_to_haves: [Rust]
+hook: Ethereum client and protocol work. Confirm the live opening on Nethermind careers.
+description: >
+  Remote blockchain protocol engineering. Consensus, execution clients, Ethereum.
+  Official Nethermind careers page.

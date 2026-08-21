@@ -15,6 +15,7 @@ class RoleTemplate:
 FAMILY_ORDER = (
     "Networking & infrastructure",
     "Programming",
+    "Web3",
     "Mobile",
     "DevOps & cloud",
     "AI / ML",
@@ -190,6 +191,72 @@ _RAW: tuple[tuple[str, str, str, str], ...] = (
         "Node.js Developer",
         "Node services you deployed and watched fail",
         "Node.js, TypeScript, Express or Fastify, SQL, testing, HTTP",
+    ),
+    (
+        "Web3",
+        "Smart Contract Engineer",
+        "contracts that shipped on a chain, with tests and a mainnet tx",
+        "Solidity, Foundry or Hardhat, OpenZeppelin, EVM, audits, mainnet deploys",
+    ),
+    (
+        "Web3",
+        "Solidity Developer",
+        "Solidity you compiled, tested, and deployed — not a tutorial contract",
+        "Solidity, Hardhat or Foundry, ERC-20 or ERC-721, gas, tests",
+    ),
+    (
+        "Web3",
+        "Protocol Engineer",
+        "client or consensus work that other nodes actually run",
+        "Go or Rust, p2p, consensus, networking, benchmarks, releases",
+    ),
+    (
+        "Web3",
+        "Rust Blockchain Engineer",
+        "Rust runtimes, Solana programs, or Substrate pallets you shipped",
+        "Rust, Anchor or Substrate, testing, programs, the chain you targeted",
+    ),
+    (
+        "Web3",
+        "Web3 Frontend Engineer",
+        "wallets, dapps, and the chain calls users actually signed",
+        "TypeScript, React, ethers or viem, WalletConnect, the dapp URL",
+    ),
+    (
+        "Web3",
+        "Web3 Backend Engineer",
+        "indexers, relayers, or APIs that read a chain without lying",
+        "TypeScript or Go, RPC, Postgres, queues, reorg handling",
+    ),
+    (
+        "Web3",
+        "Blockchain Security Engineer",
+        "findings a team patched, with a report and a retest",
+        "Solidity, fuzzing, Slither or Foundry, threat models, disclosed issues",
+    ),
+    (
+        "Web3",
+        "ZK Engineer",
+        "circuits or proving systems that ran on real inputs",
+        "circom or Halo2 or similar, proving, verification, the circuit you shipped",
+    ),
+    (
+        "Web3",
+        "Indexer Engineer",
+        "subgraph or indexer pipelines people query in production",
+        "The Graph or custom indexer, GraphQL, reorgs, Postgres, RPC",
+    ),
+    (
+        "Web3",
+        "Wallet Engineer",
+        "key management and signing paths that held real funds",
+        "TypeScript or mobile, MPC or seed UX, WalletConnect, threat model",
+    ),
+    (
+        "Web3",
+        "Node Operator",
+        "validators or RPC nodes you kept in consensus",
+        "Linux, geth or similar, monitoring, keys, upgrades, slash avoidance",
     ),
     (
         "Mobile",
@@ -813,6 +880,10 @@ _SHOPS: dict[str, tuple[tuple[str, str, str, str], tuple[str, str, str, str]]] =
     "Programming": (
         ("Paystack", "Lagos", "2019", "present"),
         ("Interswitch", "Lagos", "2016", "2019"),
+    ),
+    "Web3": (
+        ("Consensys", "Remote / Lagos", "2020", "present"),
+        ("Nethermind", "Remote", "2017", "2020"),
     ),
     "Mobile": (
         ("Kuda", "Lagos", "2020", "present"),

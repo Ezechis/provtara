@@ -26,6 +26,14 @@
           >{{ m.label }}</a>
         {% endfor %}
       </nav>
+      <nav class="rail-ecosystems" aria-label="Ecosystems">
+        {% for e in ecosystems %}
+          <a
+            class="rail-web3{% if active_ecosystem == e.id %} is-on{% endif %}"
+            href="{{ url_for('vacancies', ecosystem=e.id) }}"
+          >{{ e.label }}</a>
+        {% endfor %}
+      </nav>
       {% if user_email %}
       <form class="rail-out" method="post" action="{{ url_for('logout') }}">
         <span>{{ user_email }}</span>

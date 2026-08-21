@@ -25,7 +25,7 @@ from phase0.pack import prepare_pack
 from phase0.qualify import load_profile, profile_from_dict, profile_to_dict, qualify
 from phase1.catalog import all_jobs, get_job
 from phase1.ingest import BOARD_HOMES, SOURCES, fetch_free_boards, job_source
-from phase1.markets import MARKETS, WORK_MODES, filter_jobs, market_label, work_mode
+from phase1.markets import ECOSYSTEMS, MARKETS, WORK_MODES, filter_jobs, market_label, work_mode
 from phase1.templates_catalog import (
     example_letter,
     example_resume,
@@ -143,9 +143,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             "sources": SOURCES,
             "template_groups": grouped_roles(),
             "markets": MARKETS,
+            "ecosystems": ECOSYSTEMS,
             "work_modes": WORK_MODES,
             "active_region": request.args.get("region") or "",
             "active_mode": request.args.get("mode") or "",
+            "active_ecosystem": request.args.get("ecosystem") or "",
         }
 
     def ingested_jobs():
@@ -387,17 +389,21 @@ def create_app(test_config: dict | None = None) -> Flask:
         region = (request.args.get("region") or "").strip()
         mode = (request.args.get("mode") or "").strip()
         q = (request.args.get("q") or "").strip()
+        ecosystem = (request.args.get("ecosystem") or "").strip()
         jobs = filter_jobs(
             all_jobs(app.config["JOBS_DIR"], ingested),
             region=region,
             mode=mode,
             q=q,
+            ecosystem=ecosystem,
         )
         cards = [
             {"job": j, "source": job_source(j), "mode": work_mode(j)}
             for j in jobs
         ]
         title = market_label(region) if region else "IT vacancies"
+        if ecosystem == "web3":
+            title = "Web3 IT Vacancies" if not region else f"Web3 · {title}"
         if mode:
             labels = {m["id"]: m["label"] for m in WORK_MODES}
             title = f"{labels.get(mode, mode)} · {title}"
@@ -409,6 +415,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             q=q,
             region=region,
             mode=mode,
+            ecosystem=ecosystem,
         )
 
     @app.get("/vacancies/<job_id>")

@@ -40,6 +40,7 @@ def test_landing_states_the_promise(client):
     assert "auto-apply" in body
     home = r.get_data(as_text=True)
     assert "Nigerian IT Vacancies" in home
+    assert "Web3 IT Vacancies" in home
     assert "Upload Your Resume" in home
     assert "On-Site Jobs" in home
     assert "Work From Anywhere" in home
