@@ -1,0 +1,12 @@
+id: python-platform
+title: Platform Engineer (Python)
+company: Silt & Wire
+apply_url: https://example.com/jobs/silt-python
+remote: true
+work_authorization_any_of: [NG, ANY]
+min_years: 2
+must_haves: [Python, Docker, pytest, Linux]
+nice_to_haves: [Redis, Git]
+hook: Silt & Wire is replacing shell-only deploys with tested Python services.
+description: >
+  Python services, Docker, pytest on Linux. Remote. Two years.

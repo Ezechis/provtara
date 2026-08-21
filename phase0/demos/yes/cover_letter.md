@@ -1,0 +1,12 @@
+Dear Harbor Ledger hiring team,
+
+Harbor Ledger is replacing a batch settlement job with an idempotent Django API. I can help with that using work I have already shipped — not a stack I am pretending to have.
+
+Designed Django REST APIs for checkout and ledger traffic, backed by PostgreSQL. Shipped internal Django admin tools and Git-based release notes. Containerised the API with Docker and ran it on Linux CI with pytest.
+
+I am based in Lagos, Nigeria and available for remote work.
+
+I will submit this pack myself. Please do not treat this as an auto-apply.
+
+Jordan Hale
+jordan.hale@example.com

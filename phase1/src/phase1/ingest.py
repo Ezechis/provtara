@@ -1,0 +1,300 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from html import unescape
+
+from phase0.models import Job
+from phase0.qualify import job_from_dict
+from phase0.truth import SKILL_CATALOG
+
+UA = "Provtara/0.1 (honest IT job workshop; +https://github.com/Ezechis)"
+
+IT_POSITIVE = (
+    "engineer",
+    "developer",
+    "software",
+    "backend",
+    "front-end",
+    "frontend",
+    "full-stack",
+    "fullstack",
+    "devops",
+    "sre",
+    "site reliability",
+    "data scientist",
+    "data engineer",
+    "machine learning",
+    "security engineer",
+    "qa engineer",
+    "quality assurance",
+    "sysadmin",
+    "system administrator",
+    "cloud",
+    "platform engineer",
+    "python",
+    "java ",
+    "javascript",
+    "typescript",
+    "golang",
+    "kubernetes",
+    "react",
+    "ios",
+    "android",
+    "mobile engineer",
+)
+
+IT_NEGATIVE = (
+    "sales manager",
+    "account executive",
+    "recruiter",
+    "talent acquisition",
+    "customer success",
+    "business development",
+    "marketing manager",
+    "content writer",
+    "copywriter",
+    "graphic designer",
+    "product support",
+    "customer service",
+    "erp consultant",
+    "life sciences consulting",
+)
+
+_HTML = re.compile(r"<[^>]+>")
+_YEARS = re.compile(r"(\d+)\s*\+?\s*years?", re.I)
+
+
+def strip_html(text: str) -> str:
+    return unescape(_HTML.sub(" ", text or ""))
+
+
+def is_it_role(title: str, description: str, tags: list[str] | None = None) -> bool:
+    blob = f"{title} {description} {' '.join(tags or [])}".lower()
+    if any(n in blob for n in IT_NEGATIVE):
+        return False
+    return any(p in blob for p in IT_POSITIVE)
+
+
+def _skills_from(text: str) -> list[str]:
+    found: list[str] = []
+    seen: set[str] = set()
+    for skill in SKILL_CATALOG:
+        if re.search(r"(?<![A-Za-z0-9])" + re.escape(skill) + r"(?![A-Za-z0-9])", text, re.I):
+            key = skill.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            found.append(skill)
+    return found
+
+
+def _min_years(text: str) -> int:
+    nums = [int(n) for n in _YEARS.findall(text or "")]
+    if not nums:
+        return 2
+    return min(max(nums), 8)
+
+
+def _id_for(url: str, prefix: str) -> str:
+    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
+    return f"{prefix}-{digest}"
+
+
+def _job(
+    *,
+    source: str,
+    title: str,
+    company: str,
+    url: str,
+    description: str,
+    location: str = "",
+    remote: bool = True,
+) -> Job | None:
+    if not title or not url:
+        return None
+    desc = strip_html(description)[:4000]
+    if not is_it_role(title, desc):
+        return None
+    skills = _skills_from(f"{title}\n{desc}")
+    if not skills:
+        return None
+    must = skills[:5]
+    nice = skills[5:9]
+    hook = desc.split(".")[0].strip()[:180] or f"{company} is hiring for {title}."
+    return job_from_dict(
+        {
+            "id": _id_for(url, source),
+            "title": title.strip()[:120],
+            "company": (company or "Company").strip()[:80],
+            "apply_url": url.strip(),
+            "remote": remote,
+            "must_haves": must,
+            "nice_to_haves": nice,
+            "min_years": _min_years(desc),
+            "work_authorization_any_of": ["ANY"],
+            "hook": hook,
+            "description": desc[:1500],
+            "location": location[:80],
+        }
+    )
+
+
+def job_from_remotive(item: dict) -> Job | None:
+    cat = (item.get("category") or "").lower()
+    if cat and cat not in {"software-dev", "data", "devops", "qa"} and "software" not in cat:
+        return None
+    return _job(
+        source="remotive",
+        title=item.get("title") or "",
+        company=item.get("company_name") or "",
+        url=item.get("url") or item.get("short_url") or "",
+        description=item.get("description") or "",
+        location=item.get("candidate_required_location") or "Remote",
+        remote=True,
+    )
+
+
+def job_from_arbeitnow(item: dict) -> Job | None:
+    tags = item.get("tags") or []
+    if isinstance(tags, str):
+        tags = [tags]
+    return _job(
+        source="arbeitnow",
+        title=item.get("title") or "",
+        company=item.get("company_name") or "",
+        url=item.get("url") or "",
+        description=item.get("description") or "",
+        location=item.get("location") or "",
+        remote=bool(item.get("remote", True)),
+    )
+
+
+def job_from_remoteok(item: dict) -> Job | None:
+    if not item.get("position") and not item.get("title"):
+        return None
+    tags = item.get("tags") or []
+    return _job(
+        source="remoteok",
+        title=item.get("position") or item.get("title") or "",
+        company=item.get("company") or "",
+        url=item.get("url") or item.get("apply_url") or "",
+        description=item.get("description") or " ".join(str(t) for t in tags),
+        location=item.get("location") or "Remote",
+        remote=True,
+    )
+
+
+def job_from_jobicy(item: dict) -> Job | None:
+    return _job(
+        source="jobicy",
+        title=item.get("jobTitle") or item.get("title") or "",
+        company=item.get("companyName") or item.get("company") or "",
+        url=item.get("url") or item.get("jobPermalink") or "",
+        description=item.get("jobDescription") or item.get("jobExcerpt") or "",
+        location=item.get("jobGeo") or "Remote",
+        remote=True,
+    )
+
+
+SOURCES = {
+    "remotive": "Remotive",
+    "arbeitnow": "Arbeitnow",
+    "remoteok": "RemoteOK",
+    "jobicy": "Jobicy",
+}
+
+BOARD_HOMES = {
+    "remotive": "https://remotive.com",
+    "arbeitnow": "https://www.arbeitnow.com",
+    "remoteok": "https://remoteok.com",
+    "jobicy": "https://jobicy.com",
+}
+
+
+def job_source(job: Job) -> str:
+    prefix = (job.id or "").split("-", 1)[0]
+    return SOURCES.get(prefix, "Provtara")
+
+
+def merge_jobs(primary: list[Job], extra: list[Job]) -> list[Job]:
+    seen: set[str] = set()
+    out: list[Job] = []
+    for job in [*primary, *extra]:
+        key = (job.apply_url or job.id).rstrip("/").lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(job)
+    return out
+
+
+BOARD_URLS = {
+    "remotive": "https://remotive.com/api/remote-jobs?category=software-dev",
+    "arbeitnow": "https://www.arbeitnow.com/api/job-board-api",
+    "remoteok": "https://remoteok.com/api",
+    "jobicy": "https://jobicy.com/api/v2/remote-jobs?count=50&tag=software",
+}
+PER_BOARD_CAP = 40
+FETCH_TIMEOUT = 12
+
+
+def _get_json(url: str) -> object:
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def _extract_remotive(payload):
+    items = payload.get("jobs", payload) if isinstance(payload, dict) else payload
+    return [job_from_remotive(x) for x in items or []]
+
+
+def _extract_arbeitnow(payload):
+    items = payload.get("data", payload) if isinstance(payload, dict) else payload
+    return [job_from_arbeitnow(x) for x in items or []]
+
+
+def _extract_remoteok(payload):
+    items = payload if isinstance(payload, list) else []
+    return [job_from_remoteok(x) for x in items if isinstance(x, dict)]
+
+
+def _extract_jobicy(payload):
+    items = payload.get("jobs", []) if isinstance(payload, dict) else []
+    return [job_from_jobicy(x) for x in items]
+
+
+_EXTRACTORS = {
+    "remotive": _extract_remotive,
+    "arbeitnow": _extract_arbeitnow,
+    "remoteok": _extract_remoteok,
+    "jobicy": _extract_jobicy,
+}
+
+
+def _fetch_one(name: str, url: str) -> tuple[str, list[Job], str | None]:
+    try:
+        payload = _get_json(url)
+        batch = [j for j in _EXTRACTORS[name](payload) if j is not None][:PER_BOARD_CAP]
+        return name, batch, None
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        return name, [], str(exc)[:200]
+
+
+def fetch_free_boards() -> tuple[list[Job], dict[str, str]]:
+    """Pull IT jobs from no-key public boards in parallel. Errors are per-source."""
+    jobs: list[Job] = []
+    errors: dict[str, str] = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futs = [pool.submit(_fetch_one, name, url) for name, url in BOARD_URLS.items()]
+        for fut in as_completed(futs):
+            name, batch, err = fut.result()
+            jobs.extend(batch)
+            if err:
+                errors[name] = err
+    return merge_jobs([], jobs), errors

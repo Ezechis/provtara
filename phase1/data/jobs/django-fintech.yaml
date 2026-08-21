@@ -1,0 +1,12 @@
+id: django-fintech
+title: Django Engineer
+company: Naira Rail
+apply_url: https://example.com/jobs/naira-rail
+remote: true
+work_authorization_any_of: [NG]
+min_years: 2
+must_haves: [Python, Django, PostgreSQL, Redis]
+nice_to_haves: [Celery, Docker]
+hook: Naira Rail needs idempotent ledger posts, not a new framework.
+description: >
+  Django, PostgreSQL, Redis. Remote, Nigeria. Two years.

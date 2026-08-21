@@ -1,0 +1,20 @@
+id: near-miss-k8s
+title: Backend Engineer (containers)
+company: Quayline
+apply_url: https://example.com/jobs/quayline-backend
+remote: true
+work_authorization_any_of:
+  - NG
+  - ANY
+min_years: 2
+must_haves:
+  - Python
+  - Docker
+  - Kubernetes
+nice_to_haves:
+  - Django
+  - PostgreSQL
+hook: Quayline is moving a Docker Compose stack onto Kubernetes.
+description: >
+  Python backend, Docker today, Kubernetes this quarter. Remote.
+  Two years of backend experience.

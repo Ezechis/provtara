@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ role.title }} templates — Provtara{% endblock %}
+{% block body %}
+<p class="meta"><a href="{{ url_for('templates_index') }}">← All templates</a> · {{ role.family }}</p>
+<h1>{{ role.title }}</h1>
+<p>{{ role.focus | capitalize }}.</p>
+<p class="muted">Typical tools in this title — list them on the résumé only if a bullet proves you used them: {{ role.tools }}.</p>
+<p class="actions">
+  <a class="btn" href="{{ url_for('template_resume', role_id=role.id) }}">Download résumé</a>
+  <a class="btn secondary" href="{{ url_for('template_letter', role_id=role.id) }}">Download cover letter</a>
+</p>
+<div class="pack">
+  <div id="resume">
+    <h2>Résumé template</h2>
+    <pre>{{ resume }}</pre>
+  </div>
+  <div id="letter">
+    <h2>Cover letter template</h2>
+    <pre>{{ letter }}</pre>
+  </div>
+</div>
+{% endblock %}

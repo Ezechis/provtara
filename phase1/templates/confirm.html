@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Confirm profile{% endblock %}
+{% block body %}
+<h1>Confirm this reading</h1>
+<p>If a skill is listed without a bullet that evidences it, it will be struck on save.</p>
+<form method="post" class="stack" style="max-width:40rem">
+  <label>Name <input name="name" value="{{ draft.name }}"></label>
+  <label>Email <input name="email" value="{{ draft.email }}"></label>
+  <label>Location <input name="location" value="{{ draft.location }}"></label>
+  <label>Career start <input name="career_start" value="{{ draft.career_start }}"></label>
+  <label>Work authorization (comma) <input name="work_authorization" value="{{ draft.work_authorization | join(', ') }}"></label>
+  <label>Skills (comma) <input name="skills" value="{{ draft.skills | join(', ') }}"></label>
+  <input type="hidden" name="confirm" value="1">
+  <button class="btn" type="submit">Confirm profile</button>
+</form>
+<h2>Proposed bullets</h2>
+{% for role in draft.experience %}
+  <div class="card">
+    <strong>{{ role.title }}</strong>, {{ role.employer }} ({{ role.start }} – {{ role.end }})
+    <ul>
+      {% for b in role.bullets %}
+        <li>{{ b.text }} <span class="meta">{{ b.tags | join(', ') }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endfor %}
+{% endblock %}

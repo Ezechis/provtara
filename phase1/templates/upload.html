@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Upload résumé{% endblock %}
+{% block body %}
+<h1>Upload a résumé</h1>
+<p>PDF, Word, or pasted text. The next screen is a proposal — nothing is live until you confirm. Struck skills never appear in a pack.</p>
+<form method="post" enctype="multipart/form-data">
+  <label>PDF or DOCX
+    <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
+  </label>
+  <label>Or paste the text
+    <textarea name="resume_text" placeholder="Name, email, roles, tools you actually used…"></textarea>
+  </label>
+  <p class="actions"><button class="btn" type="submit">Propose a profile</button></p>
+</form>
+<form method="post" action="{{ url_for('upload_sample') }}">
+  <p class="muted">Or load the Phase 0 fixture (Jordan Hale, fictional) to walk the gate.</p>
+  <button class="btn secondary" type="submit">Use sample profile</button>
+</form>
+{% endblock %}

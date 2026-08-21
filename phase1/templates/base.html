@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Provtara{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <a class="mark" href="{{ url_for('landing') }}">Provtara</a>
+      <p class="mark-sub">IT jobs. Real skills. Nothing invented.</p>
+      <ol class="steps">
+        <li><a href="{{ url_for('vacancies') }}">Vacancies</a></li>
+        <li><a href="{{ url_for('upload') }}">Upload</a></li>
+        <li><a href="{{ url_for('confirm') }}">Confirm</a></li>
+        <li><a href="{{ url_for('jobs') }}">Jobs you can do</a></li>
+        <li><a href="{{ url_for('auto_apply') }}">Auto-apply</a></li>
+        <li><a href="{{ url_for('templates_index') }}">Templates</a></li>
+      </ol>
+      {% if user_email %}
+      <form class="rail-out" method="post" action="{{ url_for('logout') }}">
+        <span>{{ user_email }}</span>
+        <button type="submit" class="text-btn">Log out</button>
+      </form>
+      {% endif %}
+    </aside>
+    <main class="page">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul class="flashes">
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+      {% block body %}{% endblock %}
+    </main>
+    <aside class="tray" aria-label="CV and cover letter templates">
+      <details open>
+        <summary>CV &amp; letter templates</summary>
+        <p class="tray-lead">By IT title. Fill only what you have done.</p>
+        {% for family, roles in template_groups %}
+          <p class="tray-family">{{ family }}</p>
+          <ul class="tray-list">
+            {% for role in roles %}
+              <li>
+                <span class="tray-title">{{ role.title }}</span>
+                <span class="tray-links">
+                  <a href="{{ url_for('template_detail', role_id=role.id) }}#resume">résumé</a>
+                  <a href="{{ url_for('template_detail', role_id=role.id) }}#letter">letter</a>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endfor %}
+      </details>
+    </aside>
+  </div>
+</body>
+</html>

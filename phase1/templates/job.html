@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block body %}
+<p class="meta"><a href="{{ url_for('jobs') }}">← Jobs</a></p>
+<h1>{{ job.title }}</h1>
+<p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+<p>{{ job.description }}</p>
+<p class="actions">
+  <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+  <a class="btn secondary" href="{{ url_for('auto_apply', job=job.id) }}">Use Auto-apply</a>
+</p>
+<p class="muted">Official listing{% if source %} via {{ source }}{% endif %}. Apply directly opens that URL. Auto-apply prepares a pack first. Provtara never clicks Submit on the employer ATS.</p>
+<h2>Gap table</h2>
+<table class="gap">
+  <thead><tr><th>Requirement</th><th>Evidence</th><th>Verdict</th></tr></thead>
+  <tbody>
+    {% for row in result.gaps %}
+      <tr>
+        <td>{{ row.requirement }}</td>
+        <td>{{ row.evidence | join(', ') if row.evidence else '—' }}</td>
+        <td class="{{ 'met' if row.verdict == 'met' else 'not-met' }}">
+          {{ row.verdict }}
+          {% if row.verdict == 'not met' %}<div class="proof-mark">STET? No — not in profile</div>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="actions">
+  {% if result.passed %}
+    <form method="post" action="{{ url_for('job_pack', job_id=job.id) }}">
+      <button class="btn" type="submit">Prepare application</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('job_pack', job_id=job.id) }}">
+      {% for miss in result.failed_must_haves %}
+        {% if 'years' not in miss.lower() and 'authorization' not in miss.lower() %}
+          <label><input type="checkbox" name="exception" value="{{ miss }}"> Name “{{ miss }}” as a gap in the letter (never on the résumé)</label>
+        {% endif %}
+      {% endfor %}
+      <p><button class="btn secondary" type="submit">Prepare with named gaps</button></p>
+    </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('job_hide', job_id=job.id) }}">
+    <button class="text-btn" type="submit">Not a fit — hide</button>
+  </form>
+</div>
+{% endblock %}

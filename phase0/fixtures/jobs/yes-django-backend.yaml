@@ -1,0 +1,21 @@
+id: yes-django-backend
+title: Backend Engineer
+company: Harbor Ledger
+apply_url: https://example.com/jobs/harbor-ledger-backend
+remote: true
+work_authorization_any_of:
+  - NG
+  - ANY
+min_years: 2
+must_haves:
+  - Python
+  - Django
+  - PostgreSQL
+  - Docker
+nice_to_haves:
+  - Redis
+  - pytest
+hook: Harbor Ledger is replacing a batch settlement job with an idempotent Django API.
+description: >
+  Build and operate Django services for ledger posting. Python, PostgreSQL,
+  Docker. Remote. Two or more years of backend work.

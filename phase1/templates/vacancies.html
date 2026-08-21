@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}IT vacancies — Provtara{% endblock %}
+{% block body %}
+<h1>IT vacancies</h1>
+<p>IT jobs published from verified <a href="{{ url_for('boards') }}">boards</a>.</p>
+<p class="muted">Apply directly on the official listing, or use Auto-apply to prepare a true pack first.</p>
+<form method="post" action="{{ url_for('jobs_refresh') }}">
+  <input type="hidden" name="next" value="{{ url_for('vacancies') }}">
+  <button class="btn secondary" type="submit">Refresh</button>
+  <span class="meta">{{ ingested_count }} live listings</span>
+</form>
+<div class="cards">
+  {% for card in cards %}
+    <article class="card">
+      <p class="proof-mark">via {{ card.source }}</p>
+      <h2>{{ card.job.title }}</h2>
+      <p class="meta">{{ card.job.company }} · {% if card.job.remote %}Remote{% else %}{{ card.job.location }}{% endif %}</p>
+      <p class="actions">
+        <a class="btn" href="{{ card.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+        <a class="btn secondary" href="{{ url_for('auto_apply', job=card.job.id) }}">Auto-apply</a>
+        <a href="{{ url_for('vacancy_detail', job_id=card.job.id) }}">Details</a>
+      </p>
+    </article>
+  {% endfor %}
+</div>
+{% if not cards %}
+<p>No listings yet. Refresh the boards, or the curated sample jobs will appear from this workshop.</p>
+{% endif %}
+{% endblock %}

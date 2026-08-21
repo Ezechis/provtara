@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}CV & letter templates — Provtara{% endblock %}
+{% block body %}
+<h1>CV and cover letter templates</h1>
+<p>IT titles, from networking to programming, DevOps, AI/ML, data, and the rest of the trade. Each file is a structure. Copy a tool onto it only if you can evidence it.</p>
+{% for family, roles in template_groups %}
+  <h2>{{ family }}</h2>
+  <ul class="sources">
+    {% for role in roles %}
+      <li><a href="{{ url_for('template_detail', role_id=role.id) }}">{{ role.title }}</a></li>
+    {% endfor %}
+  </ul>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Auto-apply — Provtara{% endblock %}
+{% block body %}
+<h1>Auto-apply desk</h1>
+<p>Pick a path per job. Both stay honest:</p>
+<ul>
+  <li><strong>Apply directly</strong> — official vacancy on the verified <a href="{{ url_for('boards') }}">boards</a>, or the employer. You submit there.</li>
+  <li><strong>Auto-apply</strong> — tick jobs that already pass the gate. We generate a true pack, then you open each official apply page with that pack. Provtara does not log into an ATS and does not click Submit. We never invent skills to make a listing fit. Max 10 jobs per run.</li>
+</ul>
+<form id="auto" method="post" action="{{ url_for('auto_apply_run') }}"></form>
+<h2>Qualified — can auto-prepare</h2>
+{% if not ready %}<p>No jobs pass the gate yet. Confirm a résumé, or pick a role whose must-haves you actually have.</p>{% endif %}
+<div class="cards">
+  {% for row in ready %}
+    <article class="card{% if focus == row.job.id %} focus{% endif %}">
+      <label class="pick">
+        <input form="auto" type="checkbox" name="job_id" value="{{ row.job.id }}"
+          {% if (focus and focus == row.job.id) or (not focus and row.status != 'opened') %}checked{% endif %}>
+        <strong>{{ row.job.title }}</strong>
+      </label>
+      <p class="meta">{{ row.job.company }} · via {{ row.source }} · {{ row.status or 'not prepared' }}</p>
+      <p class="actions">
+        <a class="btn" href="{{ row.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+        {% if row.status %}
+          <a class="btn secondary" href="{{ url_for('pack_preview', job_id=row.job.id) }}">Pack</a>
+        {% endif %}
+      </p>
+      {% if row.status %}
+        <form method="post" action="{{ url_for('auto_apply_opened', job_id=row.job.id) }}">
+          <button class="text-btn" type="submit">Mark opened and go to {{ row.job.company }} listing →</button>
+        </form>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>
+{% if ready %}
+  <p class="actions"><button form="auto" class="btn" type="submit">Auto-prepare selected packs</button></p>
+{% endif %}
+<h2>Blocked by the gate</h2>
+<p class="muted">Auto-apply will not run on these. You can still apply directly if you want — Provtara will not invent the missing skills.</p>
+<ul>
+  {% for row in blocked %}
+    <li>
+      {{ row.job.title }} — {{ row.job.company }}
+      ({{ row.result.failed_must_haves | join(', ') }})
+      · <a href="{{ row.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

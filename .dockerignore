@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+phase1/instance/*.db
+phase1/instance/*.db-journal
+*.log
+.idea
+.vscode
+**/.DS_Store
+Thumbs.db

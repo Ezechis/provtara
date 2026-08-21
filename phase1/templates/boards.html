@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Verified boards — Provtara{% endblock %}
+{% block body %}
+<p class="meta"><a href="{{ url_for('vacancies') }}">← Vacancies</a></p>
+<h1>Verified boards</h1>
+<p>IT jobs on Provtara are pulled from these public boards. Apply on the original listing.</p>
+<ul class="sources">
+  {% for board in boards %}
+    <li><a href="{{ board.url }}" rel="noopener">{{ board.name }}</a></li>
+  {% endfor %}
+</ul>
+{% endblock %}

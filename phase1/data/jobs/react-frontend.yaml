@@ -1,0 +1,12 @@
+id: react-frontend
+title: Frontend Engineer
+company: Windowpane
+apply_url: https://example.com/jobs/windowpane-fe
+remote: true
+work_authorization_any_of: [ANY]
+min_years: 2
+must_haves: [React, TypeScript, JavaScript]
+nice_to_haves: [GraphQL]
+hook: Windowpane is rewriting a jQuery admin in React.
+description: >
+  React and TypeScript. Remote. Two years of frontend work.

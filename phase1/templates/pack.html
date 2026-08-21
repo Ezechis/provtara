@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Pack — {{ job.title }}{% endblock %}
+{% block body %}
+<h1>Your pack</h1>
+<p>Download these files, then apply on the official listing. Do not add tools on the employer form that are not in this résumé.</p>
+<p class="meta">{{ job.title }} at {{ job.company }}{% if source %} · via {{ source }}{% endif %}</p>
+<p class="actions">
+  <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+  <a class="btn secondary" href="{{ url_for('pack_resume', job_id=job.id) }}">Download résumé</a>
+  <a class="btn secondary" href="{{ url_for('pack_letter', job_id=job.id) }}">Download letter</a>
+  <a href="{{ url_for('pack_gaps', job_id=job.id) }}">Gap table</a>
+</p>
+<form method="post" action="{{ url_for('auto_apply_opened', job_id=job.id) }}" class="actions">
+  <button class="btn secondary" type="submit">Mark opened and go to official listing</button>
+</form>
+<div class="pack">
+  <div>
+    <h2>Résumé</h2>
+    <pre>{{ pack.resume_text }}</pre>
+  </div>
+  <div>
+    <h2>Cover letter</h2>
+    <pre>{{ pack.letter_text }}</pre>
+  </div>
+</div>
+{% endblock %}

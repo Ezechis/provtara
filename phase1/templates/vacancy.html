@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block body %}
+<p class="meta"><a href="{{ url_for('vacancies') }}">← Vacancies</a> · via {{ source }}</p>
+<h1>{{ job.title }}</h1>
+<p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+<p>{{ job.description }}</p>
+<p class="actions">
+  <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly on {{ source }}</a>
+  <a class="btn secondary" href="{{ url_for('auto_apply', job=job.id) }}">Use Auto-apply</a>
+  {% if result and result.passed %}
+    <a class="btn secondary" href="{{ url_for('job_detail', job_id=job.id) }}">Prepare pack</a>
+  {% elif user_email %}
+    <a href="{{ url_for('job_detail', job_id=job.id) }}">See if you qualify</a>
+  {% endif %}
+</p>
+{% if result %}
+<h2>Your gap table</h2>
+<table class="gap">
+  <thead><tr><th>Requirement</th><th>Verdict</th></tr></thead>
+  <tbody>
+    {% for row in result.gaps %}
+      <tr>
+        <td>{{ row.requirement }}</td>
+        <td class="{{ 'met' if row.verdict == 'met' else 'not-met' }}">{{ row.verdict }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

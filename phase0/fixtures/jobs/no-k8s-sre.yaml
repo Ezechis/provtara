@@ -1,0 +1,20 @@
+id: no-k8s-sre
+title: Senior Site Reliability Engineer
+company: Northpeak Cloud
+apply_url: https://example.com/jobs/northpeak-sre
+remote: false
+location: San Francisco, US
+work_authorization_any_of:
+  - US
+min_years: 5
+must_haves:
+  - Kubernetes
+  - Go
+  - Terraform
+  - EKS
+nice_to_haves:
+  - Python
+hook: Northpeak runs multi-tenant EKS at scale.
+description: >
+  Own Kubernetes on EKS, write controllers in Go, Terraform for the lot.
+  Five-plus years. On-site San Francisco. US work authorization required.

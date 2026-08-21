@@ -1,0 +1,48 @@
+# Phase 0 fixture — fictional candidate. Not a real person.
+name: Jordan Hale
+email: jordan.hale@example.com
+location: Lagos, Nigeria
+remote_ok: true
+work_authorization:
+  - NG
+career_start: 2023-02-01
+skills:
+  - Python
+  - Django
+  - PostgreSQL
+  - Docker
+  - Linux
+  - Git
+  - REST
+  - pytest
+  - Redis
+  - Celery
+employers:
+  - NimbusPay
+  - Coastline Labs
+experience:
+  - id: nimbus
+    employer: NimbusPay
+    title: Backend Engineer
+    start: 2024-01
+    end: present
+    bullets:
+      - id: nimbus.0
+        text: Designed Django REST APIs for checkout and ledger traffic, backed by PostgreSQL.
+        tags: [Python, Django, PostgreSQL, REST]
+      - id: nimbus.1
+        text: Containerised the API with Docker and ran it on Linux CI with pytest.
+        tags: [Docker, Linux, pytest]
+      - id: nimbus.2
+        text: Cut payment-retry latency using Redis and Celery workers.
+        tags: [Redis, Celery, Python]
+  - id: coast
+    employer: Coastline Labs
+    title: Junior Software Engineer
+    start: 2023-02
+    end: 2023-12
+    bullets:
+      - id: coast.0
+        text: Shipped internal Django admin tools and Git-based release notes.
+        tags: [Python, Django, Git]
+summary: Backend engineer (since 2023) shipping Django APIs, PostgreSQL, and Docker.

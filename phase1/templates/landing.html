@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Provtara — real skills only{% endblock %}
+{% block body %}
+<p class="proof-mark">STET means “let it stand.” We only let stand what you have done.</p>
+<h1>IT jobs. Your real skills. Nothing invented.</h1>
+<p class="lede">Upload a résumé. See roles you can actually do. Get a tailored résumé and cover letter cut from that evidence. Then choose how to apply.</p>
+<div class="promise">
+  <p>The system will never manufacture a skill to fill a gap. Never. If Kubernetes is not in your profile, it will not appear on the PDF.</p>
+</div>
+<div class="split">
+  <article class="card">
+    <h2>Apply directly</h2>
+    <p>Open the official listing on the source board and submit yourself.</p>
+  </article>
+  <article class="card">
+    <h2>Auto-apply</h2>
+    <p>We prepare a true pack for jobs that pass the gate, then you open each official apply page with that pack. Provtara does not log into an ATS and does not click Submit.</p>
+  </article>
+</div>
+<p>IT jobs published from verified <a href="{{ url_for('boards') }}">boards</a>.</p>
+<p class="actions">
+  <a class="btn" href="{{ url_for('vacancies') }}">Browse IT vacancies</a>
+  <a class="btn secondary" href="{{ url_for('register') }}">Create an account</a>
+  <a class="btn secondary" href="{{ url_for('login') }}">Log in</a>
+</p>
+<p class="muted">{% if vacancy_count %}{{ vacancy_count }} live listings.{% endif %}</p>
+{% endblock %}
