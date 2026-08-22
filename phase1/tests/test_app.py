@@ -174,10 +174,13 @@ def test_sample_profile_then_qualified_job_not_sre(client):
     assert r.status_code == 200
     r = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
     assert r.status_code == 200
-    jobs = r.get_data(as_text=True)
-    assert "Harbor Ledger" in jobs
+    desk = r.get_data(as_text=True)
+    assert "Auto-apply" in desk
+    assert "Backend Engineer" in desk or "Harbor Ledger" in desk
+    jobs = client.get("/jobs").get_data(as_text=True)
     assert "Your matches" in jobs
-    assert "Prepare" in jobs
+    assert "Auto-apply to this job" in jobs
+    assert "action=\"/jobs/yes-django-backend/auto-apply\"" in jobs or "auto-apply" in jobs.lower()
     # SRE role is a long shot, not a prepare target
     r2 = client.get("/jobs/no-k8s-sre")
     page = r2.get_data(as_text=True)
@@ -252,13 +255,18 @@ def test_auto_apply_skips_failed_gate(client):
     assert r.status_code == 200
     body = r.get_data(as_text=True)
     assert "Ready to send" in body
-    assert "Continue this application" in body
+    assert "See résumé" in body
     assert "Verified boards" not in body
-    assert "You do not need board homepages" in body
+    assert "board homepages" in body
     assert client.get("/packs/no-k8s-sre/resume.md").status_code == 404
     yes = client.get("/packs/yes-django-backend/resume.md")
     assert yes.status_code == 200
     assert b"Kubernetes" not in yes.data
+    one = client.post("/jobs/yes-django-backend/auto-apply", follow_redirects=False)
+    assert one.status_code in (302, 303)
+    loc = one.headers.get("Location") or ""
+    assert "packs/yes-django-backend" in loc or "/packs/" in loc
+    assert "example.com/jobs" not in loc
     opened = client.post("/auto-apply/yes-django-backend/opened", follow_redirects=False)
     assert opened.status_code in (302, 303)
     assert "harbor-ledger" in (opened.headers.get("Location") or "")
@@ -267,8 +275,8 @@ def test_auto_apply_skips_failed_gate(client):
 def test_jobs_rank_by_evidenced_fit_percent(client):
     _register_and_login(client)
     client.post("/upload/sample", follow_redirects=True)
-    r = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
-    body = r.get_data(as_text=True)
+    client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
+    body = client.get("/jobs").get_data(as_text=True)
     assert "Harbor Ledger" in body
     assert "100 percent evidenced fit" in body
     assert "84 percent evidenced fit" in body

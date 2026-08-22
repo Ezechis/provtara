@@ -36,9 +36,9 @@ _HEAD_PATTERNS = (
     (
         "edu",
         r"educational\s+qualif|educational\s+background|education\s+and\s+training|"
-        r"academic\s+qualif|^education$|^academic$|^qualifications$",
+        r"education\s+and\s+cert|academic\s+qualif|^education$|^academic$|^qualifications$",
     ),
-    ("cert", r"certif|licen[cs]e"),
+    ("cert", r"^certifications?$|^professional\s+certifications?$|^licen[cs]es?(?:\s+and\s+certifications?)?$"),
     (
         "exp",
         r"work\s+(?:history|experience)|professional\s+experience|employment\s+history|"
@@ -347,6 +347,55 @@ def _clean_bullet(ln: str) -> str:
     return re.sub(r"^[\-•–*—]\s*", "", ln).strip()
 
 
+_SCHOOL = re.compile(
+    r"university|polytechnic|college|secondary|high school|waec|neco|ssce|"
+    r"school certificate|senior school|\bnce\b|\bhnd\b|\bond\b|bachelor|master|"
+    r"doctorate|ph\.?d|b\.?\s*sc|m\.?\s*sc|ll\.?b",
+    re.I,
+)
+_PRO_CERT = re.compile(
+    r"\b(ccna|ccnp|ccie|pmp|itil|aws|azure|gcp|comptia|ceh|cissp|prince2|"
+    r"scrum master|itil|microsoft certified|google certified|certified|"
+    r"certification)\b",
+    re.I,
+)
+
+
+def classify_credential(line: str) -> str | None:
+    text = (line or "").strip()
+    if not text:
+        return None
+    schoolish = bool(_DEGREE.search(text) or _SCHOOL.search(text))
+    certish = bool(_PRO_CERT.search(text))
+    if schoolish and re.search(r"school certificate|senior school|waec|neco|ssce", text, re.I):
+        return "edu"
+    if schoolish and not certish:
+        return "edu"
+    if certish and not schoolish:
+        return "cert"
+    if schoolish:
+        return "edu"
+    return None
+
+
+def partition_credentials(education: list[str], certifications: list[str]) -> tuple[list[str], list[str]]:
+    edu: list[str] = []
+    cert: list[str] = []
+    seen: set[str] = set()
+    for origin, bucket in ((education, "edu"), (certifications, "cert")):
+        for line in origin or []:
+            key = re.sub(r"\s+", " ", line).strip().lower()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            kind = classify_credential(line) or bucket
+            if kind == "edu":
+                edu.append(line)
+            else:
+                cert.append(line)
+    return edu, cert
+
+
 def extract_upload(file_storage) -> str:
     name = (getattr(file_storage, "filename", None) or "").lower()
     data = file_storage.read()
@@ -430,12 +479,19 @@ def propose_from_text(text: str) -> dict:
                     section_skills.extend(_split_skill_tokens(rest))
             continue
         if section == "edu":
-            if len(ln) > 8:
-                education.append(ln)
+            token = _clean_bullet(ln)
+            kind = classify_credential(token)
+            if kind == "cert" and token:
+                certifications.append(token)
+            elif token and (kind == "edu" or len(token) > 8):
+                education.append(token)
             continue
         if section == "cert":
             token = _clean_bullet(ln)
-            if len(token) >= 2:
+            kind = classify_credential(token)
+            if kind == "edu" and token:
+                education.append(token)
+            elif len(token) >= 2:
                 certifications.append(token)
             continue
         if section == "sum":
@@ -534,6 +590,7 @@ def propose_from_text(text: str) -> dict:
     if not location or location.lower() == "not specified":
         location = auth[0] if auth else ""
     summary = _clean_profile_text(summary)
+    education, certifications = partition_credentials(education, certifications)
     return {
         "name": name[:80],
         "email": email,

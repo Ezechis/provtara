@@ -119,6 +119,31 @@ CCNA
     assert any("ccna" in c.lower() for c in draft["certifications"])
 
 
+def test_education_and_certs_stay_in_separate_boxes():
+    text = """
+Ada Okafor
+ada@example.com
+Lagos, Nigeria
+
+EDUCATIONAL QUALIFICATIONS
+WAEC Senior School Certificate, 2010
+B.Sc Computer Science, University of Lagos, 2014
+CCNA
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner
+"""
+    draft = propose_from_text(text)
+    edu = " ".join(draft["education"]).lower()
+    cert = " ".join(draft["certifications"]).lower()
+    assert "university of lagos" in edu
+    assert "waec" in edu
+    assert "ccna" in cert
+    assert "aws" in cert
+    assert "ccna" not in edu
+    assert "university" not in cert
+
+
 def test_skills_section_fills_confirm_list():
     text = """Ada Okafor
 ada@example.com

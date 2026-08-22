@@ -513,7 +513,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             n = _notify_user(session["user_id"])
             if n:
                 flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
-            return redirect(url_for("jobs"))
+            return redirect(url_for("auto_apply"))
         return render_template("confirm.html", draft=confirm_view(draft))
 
     @app.get("/jobs")
@@ -802,6 +802,43 @@ def create_app(test_config: dict | None = None) -> Flask:
                 "(missing must-haves, or this plan’s pack limit is used up)."
             )
         return redirect(url_for("auto_apply", queue="1"))
+
+    @app.post("/jobs/<job_id>/auto-apply")
+    @login_required
+    def job_auto_apply(job_id: str):
+        profile = current_profile()
+        if profile is None:
+            return redirect(url_for("upload"))
+        blocked = _pack_allowed(session["user_id"])
+        if blocked:
+            flash(blocked)
+            return redirect(url_for("pricing"))
+        job = get_job(app.config["JOBS_DIR"], job_id, ingested_jobs())
+        if job is None:
+            return "No such job", 404
+        if not qualify(profile, job).passed:
+            flash("That job does not pass the gate. Auto-apply will not invent the missing skills.")
+            return redirect(url_for("job_detail", job_id=job_id))
+        try:
+            pack = prepare_pack(profile, job)
+        except (GateFailed, TruthFailed) as exc:
+            flash(str(exc))
+            return redirect(url_for("job_detail", job_id=job_id))
+        gaps = ["| Requirement | Evidence | Verdict |", "|---|---|---|"]
+        for row in pack.gaps:
+            ev = ", ".join(row.evidence) if row.evidence else "—"
+            gaps.append(f"| {row.requirement} | {ev} | {row.verdict} |")
+        save_pack(
+            db(),
+            session["user_id"],
+            job.id,
+            pack.resume_text,
+            pack.letter_text,
+            "\n".join(gaps) + "\n",
+        )
+        log_apply(db(), session["user_id"], job.id, "prepared")
+        flash("Auto-apply prepared this job’s résumé and letter. Review them here — we did not send you to the job board.")
+        return redirect(url_for("pack_preview", job_id=job.id))
 
     @app.post("/auto-apply/<job_id>/opened")
     @login_required

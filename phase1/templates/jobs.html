@@ -2,7 +2,7 @@
 {% block title %}Your matches{% endblock %}
 {% block body %}
 <h1>Your matches</h1>
-<p>Ranked by evidenced fit — how much your confirmed résumé covers each job. Green is a gate pass (we can prepare a pack). Lower scores are still listed so you can see the gaps. Apply on the employer’s site; we never submit.</p>
+<p>Ranked by evidenced fit. Use <strong>Auto-apply to this job</strong> to prepare a tailored résumé and letter here. That does not open the job board. You submit on the employer form only when you choose to.</p>
 <form method="post" action="{{ url_for('jobs_refresh') }}">
   <input type="hidden" name="next" value="{{ url_for('jobs') }}">
   <button class="btn secondary" type="submit">Refresh jobs</button>
@@ -20,11 +20,12 @@
         </div>
         {% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}
       </div>
-      <p class="actions">
-        <a class="btn" href="{{ card.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
-        <a class="btn secondary" href="{{ url_for('auto_apply', job=card.job.id) }}">Auto-apply</a>
-        <a href="{{ url_for('job_detail', job_id=card.job.id) }}">Prepare pack</a>
-      </p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('job_auto_apply', job_id=card.job.id) }}">
+          <button class="btn" type="submit">Auto-apply to this job</button>
+        </form>
+        <a href="{{ url_for('job_detail', job_id=card.job.id) }}">Details</a>
+      </div>
     </article>
   {% endfor %}
 </div>
@@ -46,7 +47,9 @@
         {% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}
       </div>
       <p class="proof-mark">Missing: {{ card.misses | join(', ') }}</p>
-      <p class="actions"><a href="{{ url_for('job_detail', job_id=card.job.id) }}">See gaps</a></p>
+      <p class="actions">
+        <a class="btn secondary" href="{{ url_for('job_detail', job_id=card.job.id) }}">See gaps</a>
+      </p>
     </article>
   {% endfor %}
 </div>

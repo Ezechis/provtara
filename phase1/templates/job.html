@@ -13,11 +13,15 @@
   {%- if result.fit.nice_total %} · {{ result.fit.nice_met }}/{{ result.fit.nice_total }} nice-to-haves{% endif %}.
   {% if result.passed %}Gate pass.{% else %}Gate failed — percent is closeness, not a pack.{% endif %}</p>
 <p>{{ job.description }}</p>
-<p class="actions">
-  <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
-  <a class="btn secondary" href="{{ url_for('auto_apply', job=job.id) }}">Use Auto-apply</a>
-</p>
-<p class="muted">Official listing{% if source %} via {{ source }}{% endif %}. Apply directly opens that URL. Auto-apply prepares a pack first. Provtara never clicks Submit on the employer ATS.</p>
+<div class="actions">
+  {% if result.passed %}
+  <form method="post" action="{{ url_for('job_auto_apply', job_id=job.id) }}">
+    <button class="btn" type="submit">Auto-apply to this job</button>
+  </form>
+  {% endif %}
+  <a class="btn secondary" href="{{ url_for('auto_apply', job=job.id) }}">All Auto-apply jobs</a>
+</div>
+<p class="muted">Auto-apply prepares the pack on Provtara. It does not open the job board. You still press Submit on the employer form when you are ready.</p>
 <h2>Gap table</h2>
 <table class="gap">
   <thead><tr><th>Requirement</th><th>Evidence</th><th>Verdict</th></tr></thead>

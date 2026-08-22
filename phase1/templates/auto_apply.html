@@ -2,7 +2,8 @@
 {% block title %}Auto-apply — Provtara{% endblock %}
 {% block body %}
 <h1>Auto-apply</h1>
-<p>Tick the jobs you want. We write a résumé and letter from your confirmed skills, then you continue each job’s own application form. You do not need board homepages. The form lives on that listing; we cannot press Submit there for you.</p>
+<p>Choose the vacancies you want. We prepare a tailored résumé and letter for each one <strong>on this site</strong>. You do not need board homepages. Open the employer form only when you are ready to submit.</p>
+<p class="meta"><a href="{{ url_for('jobs') }}">Your matches</a></p>
 <p class="meta">{{ current_plan.label }}: up to {{ current_plan.auto_batch }} job{{ 's' if current_plan.auto_batch != 1 else '' }} per run, {{ current_plan.packs_month }} packs this month.</p>
 
 {% if queue %}
@@ -19,10 +20,10 @@
         {% with fit=row.fit %}{% include "_fit_stamp.html" %}{% endwith %}
       </div>
       <div class="actions">
+        <a class="btn" href="{{ url_for('pack_preview', job_id=row.job.id) }}">See résumé &amp; letter</a>
         <form method="post" action="{{ url_for('auto_apply_opened', job_id=row.job.id) }}">
-          <button class="btn" type="submit">Continue this application</button>
+          <button class="btn secondary" type="submit">Open employer form</button>
         </form>
-        <a class="btn secondary" href="{{ url_for('pack_preview', job_id=row.job.id) }}">See résumé &amp; letter</a>
         <a href="{{ url_for('pack_resume', job_id=row.job.id) }}">Download résumé</a>
         <a href="{{ url_for('pack_letter', job_id=row.job.id) }}">Download letter</a>
       </div>
@@ -46,6 +47,11 @@
         {% with fit=row.fit %}{% include "_fit_stamp.html" %}{% endwith %}
       </div>
       <p class="meta">{{ row.job.company }}{% if row.pack %} · pack ready{% endif %}</p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('job_auto_apply', job_id=row.job.id) }}">
+          <button class="btn" type="submit">Auto-apply to this job</button>
+        </form>
+      </div>
     </article>
   {% endfor %}
 </div>
