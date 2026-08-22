@@ -930,6 +930,1320 @@ STORIES: dict[str, Story] = {
             "I will submit this pack myself.",
         ),
     ),
+    "cloud-engineer": (
+        "Cloud Engineer, Paystack (2019 – present) — Lagos",
+        "Systems Engineer, Andela (2016 – 2019) — Lagos / remote",
+        "AWS, IAM, VPC, Terraform, CloudWatch",
+        (
+            "VPC with public/private subnets and a NAT that actually has a route; a mis-aimed 0.0.0.0/0 in a private table was a finding I closed with a deny and a test apply.",
+            "IAM roles per service, no long-lived access keys in git. I scan PRs for AKIA.",
+            "CloudWatch alarms on 5xx and queue age, not CPU. A disk alarm that never meant users-failing was deleted.",
+        ),
+        (
+            "Lifted a Linux fleet onto instances with an AMI bake, not a snowflake SSH.",
+            "Cost: tagged every resource; untagged was a weekly mail, not a surprise bill.",
+        ),
+        (
+            "Cloud work is the route table and the key that is not in git. I have both on a live AWS account.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "aws-engineer": (
+        "AWS Engineer, Flutterwave (2020 – present) — Lagos",
+        "Cloud Engineer, Paystack (2017 – 2020) — Lagos",
+        "EC2, IAM, VPC, S3, RDS, CloudWatch, Terraform",
+        (
+            "RDS PostgreSQL Multi-AZ for ledger-ish data: failover drill timed, and the app retried the dropped connection instead of 500ing the merchant.",
+            "S3 buckets: block public ACLs at the account, and a bucket policy that denied `s3:PutObject` without encryption.",
+            "Terraform for the landing account. `terraform plan` in CI had to be clean or the merge died.",
+        ),
+        (
+            "EC2 + ALB for APIs before ECS. I still know when a target fails health on  /health vs /.",
+            "Wrote the incident note when an IAM `*` on s3:GetObject was the whole breach model.",
+        ),
+        (
+            "AWS here is Multi-AZ that we failed over, and a public-ACL block at the account. Not a solutions-architect quiz.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "azure-engineer": (
+        "Azure Engineer, a Nigerian bank programme (2019 – present) — Lagos",
+        "Windows Administrator, Interswitch (2016 – 2019) — Lagos",
+        "Azure, Entra ID, VNets, Bicep, Monitor, AKS",
+        (
+            "Entra ID Conditional Access: no legacy auth, MFA for admins, and a break-glass account in a safe we tested.",
+            "VNets + peering for a payments spoke. A peering that leaked on-prem routes was a ticket and a diagram change.",
+            "Bicep in a pipeline; what is not in the repo is not in prod.",
+        ),
+        (
+            "Hyper-V and AD taught me identity before I touched Entra.",
+            "Azure Monitor queries that named the failing function, not “the web app is slow.”",
+        ),
+        (
+            "Azure for a bank is Conditional Access and a break-glass drill, not a portal screenshot.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "gcp-engineer": (
+        "GCP Engineer, Andela (2020 – present) — remote",
+        "Cloud Engineer, a data team in Lagos (2017 – 2020)",
+        "GCP, IAM, VPC, GKE, Cloud SQL, Terraform",
+        (
+            "GKE cluster: Workload Identity, no JSON keys on nodes, and a Network Policy on the payments namespace.",
+            "Cloud SQL with private IP only. A public IP that “made the demo easier” was removed the same week.",
+            "Terraform for folders and IAM. Org policies blocked `allUsers` on buckets.",
+        ),
+        (
+            "BigQuery extracts with slot awareness. A full scan that cost more than the pipeline was rewritten.",
+            "IAM conditions on who can impersonate the CI sa.",
+        ),
+        (
+            "GCP here is Workload Identity and a private SQL IP. JSON keys on a node are a fail.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "terraform-iac-engineer": (
+        "Terraform / IaC Engineer, Andela (2020 – present) — remote",
+        "DevOps Engineer, Paystack (2017 – 2020) — Lagos",
+        "Terraform, state, modules, CI, policy as code",
+        (
+            "Remote state in S3 + Dynamo lock. A local state file in a zip is a finding I still reject.",
+            "Modules versioned; a `source = git::` pin, not `main`. A surprise module change broke staging once — then we pinned.",
+            "`terraform plan` as a required CI check. Apply only from the pipeline role.",
+        ),
+        (
+            "Hand-built VPCs first, then encoded them. I still know the resource the module hides.",
+            "OPA/Sentinel-style deny on `0.0.0.0/0` to ssh.",
+        ),
+        (
+            "IaC is the lock, the pin, and the plan in CI. I do not apply from a laptop.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "ci-cd-engineer": (
+        "CI/CD Engineer, Paystack (2019 – present) — Lagos",
+        "Build Engineer, Andela (2016 – 2019) — Lagos",
+        "GitHub Actions, artifacts, secrets, Docker, Jenkins",
+        (
+            "GitHub Actions: build, test, scan, push by sha. A workflow that used `pull_request_target` with checkout of the fork was a vuln I removed.",
+            "Secrets in OIDC to AWS, not long-lived keys in repo secrets that everyone could read.",
+            "Artifacts retained 14 days. A failed prod deploy rolled back to the last sha, not a rebuild from memory.",
+        ),
+        (
+            "Jenkins pipelines as code. Freestyle jobs were converted or killed.",
+            "Caching that did not poison a release with yesterday’s node_modules.",
+        ),
+        (
+            "CI is the sha you can roll back to and the OIDC role. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "observability-engineer": (
+        "Observability Engineer, Paystack (2020 – present) — Lagos",
+        "NOC Engineer, MainOne (2016 – 2020) — Lagos",
+        "Prometheus, Grafana, OpenTelemetry, logging, alerting",
+        (
+            "RED metrics on the charge path: rate, errors, duration. A CPU graph is not the SLO.",
+            "OpenTelemetry traces through the webhook worker; a span that stopped at the queue was a bug in the instrument, not “Kafka is slow.”",
+            "Alert routing: pages go to the team that can act. I deleted a #general flood.",
+        ),
+        (
+            "Syslog and SNMP taught me the difference between a page and a log line.",
+            "Grafana dashboards with the query in git. A dashboard that only lived in a user account was rebuilt.",
+        ),
+        (
+            "Observability is traces that cross the queue and pages that have an owner. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "infrastructure-engineer": (
+        "Infrastructure Engineer, MainOne (2018 – present) — Lagos",
+        "Systems Administrator, GTBank — Technology (2015 – 2018) — Lagos",
+        "Linux, networking, images, backups, automation",
+        (
+            "PXE/image pipeline for Linux and the jump host that is the only SSH in. Pets were imaged or retired.",
+            "Backup: tested restore of the config repo and the jump host, not only a green job.",
+            "Change calendar: a core switch on Friday needs a named rollback, or it waits.",
+        ),
+        (
+            "AD and file shares. I learned that “the backup ran” is not “we restored.”",
+            "Documented power and cooling for a small rack we actually owned.",
+        ),
+        (
+            "Infrastructure is the image and the restore. I have restored the jump host, not just watched a job.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "ai-engineer": (
+        "AI Engineer, Data Science Nigeria (2021 – present) — Lagos",
+        "Backend Engineer, Paystack (2018 – 2021) — Lagos",
+        "Python, APIs, evaluation, retrieval, production logs",
+        (
+            "RAG over internal runbooks: retrieval eval on a labelled set of 200 questions, not “it feels better.” Hit@5 is in the weekly mail.",
+            "Prompt + tools behind an API with latency SLO. A 12s completion was a page, not a feature.",
+            "Logged inputs/outputs with PII stripped. A leak of a card PAN in a prompt log was a P1 I wrote up.",
+        ),
+        (
+            "Payments APIs taught me evals: if you cannot fail a case, you cannot ship.",
+            "Refused to put an LLM on a money path without a deterministic fallback.",
+        ),
+        (
+            "Applied AI is the labelled set and the PAN that must not land in logs. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "mlops-engineer": (
+        "MLOps Engineer, a Lagos ML platform (2020 – present)",
+        "DevOps Engineer, Andela (2017 – 2020) — remote",
+        "Python, CI, model registry, pipelines, monitoring",
+        (
+            "Registry + promotion: staging model cannot reach prod unless the holdout beats last week. The gate is code.",
+            "Feature pipeline in Airflow with data-quality checks. A null spike blocked the train.",
+            "Live monitor: score distribution drift vs train. A silent shift in fraud scores paged us.",
+        ),
+        (
+            "CI for Python services. Same habit: a red test is a red train.",
+            "Never deployed a pickle from a laptop.",
+        ),
+        (
+            "MLOps is the promotion gate and the drift page. I have blocked a train on nulls.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "data-scientist": (
+        "Data Scientist, Interswitch (2019 – present) — Lagos",
+        "Analyst, Paystack (2016 – 2019) — Lagos",
+        "Python, SQL, statistics, notebooks, experiment design",
+        (
+            "Experiment on a fee prompt: pre-registered metric, 14-day window, and a result that did not ship because it was not significant.",
+            "SQL for the cohort, Python for the test. The notebook starts with the question, not a model.",
+            "Fraud features with a leakage check. A feature available only after the label was dropped.",
+        ),
+        (
+            "Dashboards that named the grain. Arguments ended at the query.",
+            "Refused a “quick ML” when a SQL rule already caught 80%.",
+        ),
+        (
+            "Data science here is the experiment we did not ship. That is a result too.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "nlp-engineer": (
+        "NLP Engineer, a Lagos NLP team (2020 – present)",
+        "Python Developer, Andela (2017 – 2020) — remote",
+        "Python, transformers, evaluation, tokenization, serving",
+        (
+            "Classification of support tickets: macro-F1 on a held-out month, not accuracy on the train dump.",
+            "Tokenizer and max-length chosen from the error pile: long tickets were truncated in the middle of the account number until we fixed the window.",
+            "Served with a batcher. p95 stayed under the SLA we wrote down.",
+        ),
+        (
+            "Regex and sklearn baselines first. Transformers had to beat them.",
+            "Label guide so two annotators could agree. Kappa is in the doc.",
+        ),
+        (
+            "NLP is the held-out month and the truncated account number. I have both in the error pile.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "computer-vision-engineer": (
+        "Computer Vision Engineer, a Lagos CV project (2020 – present)",
+        "Python Engineer, Andela (2017 – 2020) — remote",
+        "Python, OpenCV, PyTorch, datasets, evaluation",
+        (
+            "KYC selfie liveness: ROC on a time-split, and a failure mode for printouts that we added to the set after a real attempt.",
+            "OpenCV preprocess + a small CNN. The big model did not win enough to pay for GPU.",
+            "Dataset versioned. A silent resplit that leaked twins was a post-mortem.",
+        ),
+        (
+            "Built data loaders that failed when EXIF orientation was wrong, not when the model was “bad.”",
+            "Never trained on the test folder. The path is in the config.",
+        ),
+        (
+            "Vision that gates identity is the printout case and the time-split. I have the extra set.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "applied-scientist": (
+        "Applied Scientist, Data Science Nigeria (2020 – present) — Lagos",
+        "Data Scientist, Interswitch (2017 – 2020) — Lagos",
+        "Python, statistics, experiments, evaluation, papers-to-prod",
+        (
+            "Took a ranking paper to a feature in search: offline NDCG, then an A/B that had to hold for two weeks.",
+            "Ablation in the doc. If we cannot say which piece moved the metric, it does not ship.",
+            "Production monitor matched the offline metric. A mismatch was a bug, not “the model drifted.”",
+        ),
+        (
+            "SQL experiments before GPUs. Most questions died there, correctly.",
+            "Wrote the one-pager so PM could kill the project without a deck.",
+        ),
+        (
+            "Applied science is the A/B that had to hold and the ablation. I have killed my own idea with both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "llm-applied-ai-engineer": (
+        "LLM / Applied AI Engineer, a Lagos product team (2023 – present)",
+        "AI Engineer, Data Science Nigeria (2020 – 2023) — Lagos",
+        "Python, APIs, retrieval, evaluation sets, latency, safety",
+        (
+            "Eval set of 150 real tickets with expected answers. A prompt change that dropped exact-match 8 points did not ship, even if it “sounded nicer.”",
+            "Tool-calling with a whitelist. The model cannot hit the refund API; a human does.",
+            "Timeout 8s with a deterministic fallback sentence. Silence is worse than a short sorry.",
+        ),
+        (
+            "RAG evals before I touched agents. Retrieval quality first.",
+            "Red-team: prompt injection that asked for the system prompt. We stripped it in the log and in the reply.",
+        ),
+        (
+            "LLM work is the eval set and the API the model cannot call. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "research-engineer": (
+        "Research Engineer, a Lagos R&D group (2020 – present)",
+        "Backend Engineer, Andela (2017 – 2020) — remote",
+        "Python, papers, training loops, ablation, reproducible code",
+        (
+            "Reproduced a paper’s table 2 within the stated variance, then shipped the training script with seeds and a Docker tag.",
+            "Ablations in a spreadsheet the PI could read. A “we think” without a row was rejected.",
+            "Shared a checkpoint and the exact command. If they cannot rerun it, it is not done.",
+        ),
+        (
+            "Production services taught me that unreproducible training is the same as unreproducible deploys.",
+            "Code review on research PRs: no notebook-only artifacts.",
+        ),
+        (
+            "Research engineering is the command another person ran. I keep the Docker tag.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "analytics-engineer": (
+        "Analytics Engineer, Flutterwave (2020 – present) — Lagos",
+        "Data Analyst, Paystack (2017 – 2020) — Lagos",
+        "SQL, dbt, warehouses, testing, BI",
+        (
+            "dbt models with unique tests on `payment_id`. A duplicate failed CI, not a Monday standup.",
+            "Staging vs marts. Finance cannot query raw. The access grant is in the PR.",
+            "Docs on the grain of `fct_charges`. Arguments about GMV ended at that page.",
+        ),
+        (
+            "SQL in a BI tool until the same join was copied five times. Then it became a model.",
+            "Never renamed a column in prod without a deprecation window.",
+        ),
+        (
+            "Analytics engineering is the unique test and the grain doc. I have failed CI on a duplicate payment_id.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "data-analyst": (
+        "Data Analyst, Paystack (2019 – present) — Lagos",
+        "Operations Analyst, Interswitch (2016 – 2019) — Lagos",
+        "SQL, spreadsheets, BI, stakeholder questions",
+        (
+            "Weekly merchant health: SQL in version control, a definition of “active,” and a number that matched finance after we agreed the grain.",
+            "Looker/Metabase explore with certified fields. A rogue explore that used the wrong timezone was unpublished.",
+            "Ad-hoc: I send the query with the slide. If they cannot rerun it, I did not finish.",
+        ),
+        (
+            "Excel for ops until the file had 12 hidden sheets. Then SQL.",
+            "Refused a “quick chart” that mixed kobo and naira.",
+        ),
+        (
+            "Analysis is the query attached to the number. I send both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "etl-engineer": (
+        "ETL Engineer, Flutterwave (2019 – present) — Lagos",
+        "SQL Developer, a Nigerian bank (2016 – 2019) — Lagos",
+        "SQL, Python, Airflow, schemas, incremental loads",
+        (
+            "Incremental loads on `updated_at` with a high-water table. A clock-skew that skipped rows is in the post-mortem.",
+            "Schema contract: extra columns in source do not break the job; missing required columns fail it.",
+            "Airflow: retries with backoff on the SFTP hop, not a tight loop that locked the vendor out.",
+        ),
+        (
+            "SSIS packages I replaced with Python the day they could not find the GUI.",
+            "Checksum on file landing. A truncated CSV is a fail, not a load.",
+        ),
+        (
+            "ETL is the high-water table and the truncated file. I have missed rows to clock-skew and then fixed the pointer.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "data-warehouse-engineer": (
+        "Data Warehouse Engineer, Paystack (2020 – present) — Lagos",
+        "Database Developer, Interswitch (2016 – 2020) — Lagos",
+        "SQL, Snowflake or BigQuery, modeling, cost, access",
+        (
+            "Star schema for charges: facts at the grain of a successful authorize, dimensions slowly changing with a start/end.",
+            "Clustering/partitioning on date. A dashboard that scanned a year for a day was rewritten.",
+            "Role-based access: PII in a restricted schema. Analysts get hashed ids.",
+        ),
+        (
+            "SQL Server warehouses. Same grain fights, smaller cloud bill.",
+            "Backups and a restore drill of the mart, not only the raw zone.",
+        ),
+        (
+            "Warehouse work is the grain and the year-scan we killed. I have both in the cost report.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "business-intelligence-engineer": (
+        "BI Engineer, Access Bank — Technology (2019 – present) — Lagos",
+        "Data Analyst, a Lagos lender (2016 – 2019)",
+        "SQL, Power BI, semantic layer, access control",
+        (
+            "Power BI dataset with a published definition of NPL. Two reports cannot disagree because they cannot fork the measure.",
+            "Row-level security by branch. A HO user who saw every branch in a test was a ticket.",
+            "Refresh: incremental on the fact, full on the tiny dims. A 2-hour refresh became 12 minutes.",
+        ),
+        (
+            "Excel packs for EXCO until they asked for a filter. Then a model.",
+            "Never embedded a password in a gateway config I could avoid.",
+        ),
+        (
+            "BI is one definition of NPL and RLS that we tested. I have failed a test where HO saw too much.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "data-architect": (
+        "Data Architect, Flutterwave (2020 – present) — Lagos",
+        "Warehouse Engineer, Paystack (2016 – 2020) — Lagos",
+        "modeling, warehouses, governance, SQL, pipeline topology",
+        (
+            "Source-of-truth map: which system owns merchant, which owns charge, which is a copy. A new pipeline that wrote a second merchant table was rejected.",
+            "PII classes and retention. Logs are not a warehouse.",
+            "Contract tests between producers and the warehouse. A silent field type change failed CI.",
+        ),
+        (
+            "Built the first star schema, then spent years stopping people from adding a second.",
+            "Reviewed every “just a dump” request. Most became a documented extract.",
+        ),
+        (
+            "Architecture here is the map of who owns merchant. I have rejected a second table.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "streaming-data-engineer": (
+        "Streaming Data Engineer, Paystack (2020 – present) — Lagos",
+        "Backend Engineer, Interswitch (2016 – 2020) — Lagos",
+        "Kafka, SQL, Python, lag, exactly-once caveats",
+        (
+            "Kafka topic for authorize events: partitioning by merchant, lag alert at 30s, and a consumer that is idempotent on event id.",
+            "Exactly-once is a sentence in the doc: we are at-least-once plus a unique key. I will not say exactly-once otherwise.",
+            "Poison messages on a dead-letter topic with a replay tool. A bad payload does not stall the partition forever.",
+        ),
+        (
+            "HTTP webhooks taught me retries. Streams are retries with order.",
+            "Schema registry when a field vanished and the consumer NPE’d.",
+        ),
+        (
+            "Streaming is lag, a unique key, and a dead letter. I do not sell exactly-once I do not have.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "cybersecurity-analyst": (
+        "Cybersecurity Analyst, a Nigerian bank (2019 – present) — Lagos",
+        "SOC L1, MSSP shift work (2016 – 2019) — Lagos",
+        "SIEM, MITRE ATT&CK, ticketing, containment, log analysis",
+        (
+            "Mapped detections to ATT&CK. A “malware” page without a technique was rewritten or deleted.",
+            "Contained a workstation that beaconed: isolate, image, ticket. The user got a loaner, not a lecture only.",
+            "Weekly false-positive review. Rules that never caught truth lost their page.",
+        ),
+        (
+            "L1: first 15 minutes are triage, not a novel. I wrote the 15-minute card.",
+            "Escalated with the last 20 log lines, not “please check.”",
+        ),
+        (
+            "Analyst work is the isolate and the technique. I have both on a ticket with a loaner laptop.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "soc-analyst": (
+        "SOC Analyst, Interswitch (2018 – present) — Lagos",
+        "NOC/SOC hybrid, MainOne (2015 – 2018) — Lagos",
+        "SIEM, EDR, playbooks, escalation, packet or log review",
+        (
+            "12-hour SOC shifts: EDR + SIEM, a playbook for ransomware-like encryption spikes, and a page that names the host.",
+            "Packet capture when the SIEM story was not enough. A DNS tunnel was the pcap, not the rule name.",
+            "Handover notes the next shift can run. A mystery at 07:00 is a failure of the night notes.",
+        ),
+        (
+            "NOC first: uptime pages. SOC added intent.",
+            "Never closed “no further action” without saying what we looked at.",
+        ),
+        (
+            "SOC is the handover and the pcap. I have both on a DNS-tunnel night.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "application-security-engineer": (
+        "Application Security Engineer, Paystack (2019 – present) — Lagos",
+        "Backend Engineer, Interswitch (2016 – 2019) — Lagos",
+        "SAST/DAST, threat modeling, reviews, secrets, OWASP",
+        (
+            "PR review on the charge API: IDOR, authz, and a secret that almost landed in a test fixture. The fixture uses a fake PAN.",
+            "SAST in CI with a baseline. New high findings fail the build; old ones have tickets.",
+            "Threat model for webhooks: replay, spoofed IP, and HMAC. The test is a bad signature.",
+        ),
+        (
+            "Wrote the APIs I later reviewed. I still think like an author.",
+            "Secret scanning in git. A key in history was rotated, not ignored.",
+        ),
+        (
+            "AppSec is the bad HMAC test and the PAN that is not in the fixture. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "cloud-security-engineer": (
+        "Cloud Security Engineer, Flutterwave (2020 – present) — Lagos",
+        "Security Engineer, Interswitch (2016 – 2020) — Lagos",
+        "IAM, CSPM, network policy, encryption, Terraform",
+        (
+            "CSPM findings with owners. An open security group that had been “temporary” for 11 months was closed with a change ticket.",
+            "IMDSv2 required. A metadata-ssrf story from another company became our control.",
+            "KMS: no plaintext secrets in env on the box. The exception list expires.",
+        ),
+        (
+            "On-prem firewalls first. Cloud is the same question with a JSON policy.",
+            "Terraform for the guardrails so a console click cannot undo them silently.",
+        ),
+        (
+            "Cloud security is the 11-month temporary SG and IMDSv2. I have closed the first.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "iam-engineer": (
+        "IAM Engineer, a Nigerian bank (2019 – present) — Lagos",
+        "Windows Administrator, Access Bank — Technology (2016 – 2019) — Lagos",
+        "SSO, SAML, OIDC, directory, RBAC, joiner-mover-leaver",
+        (
+            "Joiner-mover-leaver: HR CSV in the morning, AD/Entra at noon, app groups the same day. A leaver who still had VPN the next morning was a P1.",
+            "SAML to two SaaS apps. A clock-skew that broke login was NTP, documented.",
+            "RBAC reviews quarterly. Owners attest or the group empties.",
+        ),
+        (
+            "AD groups until they were a swamp. Then a model and an expiry.",
+            "MFA for admins on a date we published, not “when we can.”",
+        ),
+        (
+            "IAM is the leaver who still had VPN. I have that P1, and then the same-day disable.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "grc-analyst": (
+        "GRC Analyst, a Nigerian payments firm (2019 – present) — Lagos",
+        "IT Auditor support, a bank (2016 – 2019) — Lagos",
+        "ISO, SOC 2, NIST, audits, risk register, evidence",
+        (
+            "Control evidence in a folder an auditor can walk: screenshot, config export, dated. A Word doc that says “we do MFA” is not evidence.",
+            "Risk register with an owner and a next review. Unowned rows are not risks, they are wishes.",
+            "SOC 2 week: I sat with the tester on the access review sample, not a slide.",
+        ),
+        (
+            "Pulled samples for ITGC. Learned the difference between a policy and a log.",
+            "Never backdated a screenshot. That is how you lose the letter.",
+        ),
+        (
+            "GRC is the dated export and the owner. I have sat the sample with the tester.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "security-architect": (
+        "Security Architect, Interswitch (2020 – present) — Lagos",
+        "Security Engineer, a Nigerian bank (2016 – 2020) — Lagos",
+        "threat models, patterns, IAM, network, review boards",
+        (
+            "Pattern: no direct internet from the card zone; a proxy with an allow-list. A new vendor that “needed any:any” was a no.",
+            "Review board: I write the decision, not just attend. The decision is in git.",
+            "Threat model for a new API: spoof, replay, insider. Controls mapped to tickets, not adjectives.",
+        ),
+        (
+            "Implemented the firewalls I later drew. Architecture without scars is a slide.",
+            "Said no to a design and offered a smaller yes.",
+        ),
+        (
+            "Architecture is the written no to any:any. I have that mail.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "qa-engineer": (
+        "QA Engineer, Kuda (2019 – present) — Lagos",
+        "QA Analyst, Carbon (2016 – 2019) — Lagos",
+        "test cases, exploratory testing, defect tracking, APIs",
+        (
+            "Wrote the transfer cases that include double-tap, kill-app, and ₦ with a comma. Two of those caught production bugs before they shipped.",
+            "Exploratory charter on statements: I found a date filter that ignored the user’s timezone. Ticket had steps and a screenshot from a TECNO.",
+            "API tests on the status endpoint. A 200 with `failed` in the body is a fail, not a pass.",
+        ),
+        (
+            "Excel cases until they rotted. Then a repo.",
+            "Refused to sign UAT when the PIN pad still accepted 0000 on a build.",
+        ),
+        (
+            "QA for money is the comma and the kill-app. I have both as cases that caught bugs.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "sdet": (
+        "SDET, Paystack (2020 – present) — Lagos",
+        "QA Engineer, Andela (2016 – 2020) — Lagos / remote",
+        "Python, pytest, Playwright, CI, APIs",
+        (
+            "pytest API suite on charges: idempotency replay is a test, not a hope. CI red blocks merge.",
+            "Playwright on checkout: a flake we hunted for a week was a race on a toast. We waited on the role, not `sleep(3)`.",
+            "Test data factory that does not reuse a live PAN. Fixtures are obvious fakes.",
+        ),
+        (
+            "Manual first, then automated the path that broke twice.",
+            "Owned the pipeline that other QAs run. If it is red, it is my red.",
+        ),
+        (
+            "SDET is the replay test and no `sleep(3)`. I have both in CI.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "test-automation-engineer": (
+        "Test Automation Engineer, Kuda (2019 – present) — Lagos",
+        "QA Engineer, Cowrywise (2016 – 2019) — Lagos",
+        "Playwright, Cypress, CI, page objects, flake hunting",
+        (
+            "Playwright suite for onboarding: page objects, and a flake dashboard. A test that failed 8% was quarantined or fixed, not ignored.",
+            "CI on every PR. A skipped test needs a ticket id in the name.",
+            "Mobile web on a 360px profile. A button that overflowed off the transfer CTA was a fail.",
+        ),
+        (
+            "Cypress until Playwright fit the stack better. I still know both traces.",
+            "Never committed a test that only passed on my laptop’s timezone.",
+        ),
+        (
+            "Automation is the 8% flake we either fixed or quarantined. I have the dashboard.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "performance-engineer": (
+        "Performance Engineer, Paystack (2020 – present) — Lagos",
+        "Backend Engineer, Interswitch (2016 – 2020) — Lagos",
+        "k6, metrics, profiling, SLAs, reports",
+        (
+            "k6 on the authorize path: p95 budget 300ms at a stated RPS. We missed it, found the N+1, then met it.",
+            "Report with the command, the version, and the environment. A “looks fine on my machine” is not a report.",
+            "Soak test overnight. A leak that only showed at hour 6 is in the graph.",
+        ),
+        (
+            "APIs without budgets. I learned to write the number first.",
+            "Profilers on a single process before blaming the network.",
+        ),
+        (
+            "Performance is the overnight leak and the command in the report. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "qa-analyst": (
+        "QA Analyst, Flutterwave (2019 – present) — Lagos",
+        "UAT Analyst, a Nigerian bank (2016 – 2019) — Lagos",
+        "test plans, UAT, regression, tickets, product sense",
+        (
+            "UAT for a new payout corridor: cases signed by ops, not only engineering. A missing field on the bank file failed UAT on purpose.",
+            "Regression pack before each release. I will not “test the happy path only” on money.",
+            "Tickets with expected vs actual and environment. A “it doesn’t work” ticket bounced.",
+        ),
+        (
+            "Bank UAT: sign-off is a date and a name. I kept both.",
+            "Sat with a merchant on a call and reproduced, then wrote the steps.",
+        ),
+        (
+            "QA analysis is the corridor file that failed UAT on purpose. That is a pass for quality.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "solutions-architect": (
+        "Solutions Architect, Interswitch (2020 – present) — Lagos",
+        "Technical Architect, a Lagos SI (2016 – 2020)",
+        "system design, integration, cloud, trade-off writeups, reviews",
+        (
+            "Wrote the design that got built: ISO-ish posting to a REST adapter, timeouts, and who retries. The diagram matches production.",
+            "Trade-off: duplicate-detect in the adapter vs in the core. We picked the core and wrote why.",
+            "Review: I sat with the engineers through the first outage of that design and updated the doc.",
+        ),
+        (
+            "Drew pictures that became tickets. If there is no ticket, it is not a design.",
+            "Said no to a vendor box we did not need.",
+        ),
+        (
+            "Solutions architecture is the design that survived the first outage. I have the updated doc.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "software-architect": (
+        "Software Architect, Paystack (2020 – present) — Lagos",
+        "Senior Backend Engineer, Paystack (2016 – 2020) — Lagos",
+        "design docs, APIs, domain modeling, reviews, evolution",
+        (
+            "Bounded context for charges vs payouts. A team that wanted to join them in one table had to read the doc first — then they did not.",
+            "API compatibility: additive changes only. A field removal needs a version.",
+            "RFC process: I still write the comment that asks for the failure mode.",
+        ),
+        (
+            "Shipped the services I later split. Architecture without scars is theory.",
+            "Code review on the module boundaries, not the commas.",
+        ),
+        (
+            "Software architecture is the table we refused to join. I have that mail.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "cloud-architect": (
+        "Cloud Architect, Flutterwave (2020 – present) — Lagos",
+        "AWS Engineer, Paystack (2016 – 2020) — Lagos",
+        "AWS, networking, IAM, cost, landing zones",
+        (
+            "Landing zone: org, guardrails, no public S3 at the SCP. A sandbox account that bypassed it was pulled back.",
+            "Cost: unit economics per million charges. A NAT gateway we did not need left the bill.",
+            "Network: shared services VPC and spokes. A flat VPC proposal was a no.",
+        ),
+        (
+            "Built the first accounts by hand, then encoded them.",
+            "Still on-call when the design page is wrong. Then the page changes.",
+        ),
+        (
+            "Cloud architecture is the SCP and the NAT we deleted. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "enterprise-architect": (
+        "Enterprise Architect, a Nigerian bank (2019 – present) — Lagos",
+        "Solutions Architect, Interswitch (2015 – 2019) — Lagos",
+        "capability maps, integration, standards, governance, roadmaps",
+        (
+            "Capability map for payments vs channels vs core. A project that rebuilt a capability we already had was stopped at architecture review.",
+            "Standard: REST + HMAC for new internal APIs. SOAP only where a regulator still demands it, with an expiry.",
+            "Roadmap on one page the EXCO can reject. A 40-slide deck is not a roadmap.",
+        ),
+        (
+            "Integration diagrams that named the owner of each box.",
+            "Learned that governance without a no is a newsletter.",
+        ),
+        (
+            "Enterprise architecture is the duplicate project we stopped. I have the review minute.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "technical-architect": (
+        "Technical Architect, Andela (2020 – present) — remote",
+        "Lead Engineer, a Lagos product team (2016 – 2020)",
+        "design, spikes, NFRs, reviews, delivery",
+        (
+            "Spike: two days on a queue vs a table. We picked the table, with the numbers in the writeup.",
+            "NFRs in the story: p95, RPO, who is on-call. A story without them bounced.",
+            "Sat in the standup until the design was in the code, then left.",
+        ),
+        (
+            "Led a squad that shipped weekly. Architecture that cannot ship is a hobby.",
+            "Pair-programmed the first adapter so the pattern existed in git.",
+        ),
+        (
+            "Technical architecture is the two-day spike and the NFR on the story. I bounce stories without them.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "integration-architect": (
+        "Integration Architect, Interswitch (2019 – present) — Lagos",
+        "Backend Engineer, SystemSpecs (2015 – 2019) — Lagos",
+        "APIs, events, contracts, failure modes, iPaaS",
+        (
+            "Contract: timeout, retry, idempotency key. A bank that retried without a key double-posted until we made the key mandatory.",
+            "Event vs API: settlement is a file; authorize is an API. Mixing them was a design we unwound.",
+            "Failure: poison message, DLQ, replay runbook. I have replayed a day without double-credit.",
+        ),
+        (
+            "Wrote the adapters. Then drew them.",
+            "SOAP where we had to; REST where we could. The map is dated.",
+        ),
+        (
+            "Integration is the mandatory idempotency key after a double-post. I have that incident.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "it-support-specialist": (
+        "IT Support Specialist, Access Bank — Technology (2018 – present) — Lagos",
+        "Help Desk, a Lagos insurer (2015 – 2018)",
+        "Windows, identity, imaging, remote tools, customer notes",
+        (
+            "Closed 30+ tickets a day with notes another tech can follow: what I tried, what worked, asset tag.",
+            "Imaged laptops with the standard image. A “just install it” request that broke BitLocker was a lesson I documented.",
+            "Escalated with evidence. A “network is slow” that was a 100% disk on the PC did not go to the network team.",
+        ),
+        (
+            "Password resets until I automated the ones policy allowed.",
+            "Walked floors. Some tickets die when you look at the cable.",
+        ),
+        (
+            "Support is the asset tag and the disk that was the “network.” I have both in tickets.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "help-desk-technician": (
+        "Help Desk Technician, MainOne (2018 – present) — Lagos",
+        "Service Desk, a call-centre IT team (2015 – 2018) — Lagos",
+        "ticketing, passwords, hardware, SOP, remote support",
+        (
+            "First-line SLA: 15 minutes to first response on P2. I missed it twice in a year; both are in the report.",
+            "SOP for VPN: the screenshot is the current client, not last year’s.",
+            "Remote session that did not leave a tool running as admin. I check after disconnect.",
+        ),
+        (
+            "Phones and a queue. Tone matters. I still write the steps as if the user is tired.",
+            "Never asked for a password in chat. That was a firing offence we meant.",
+        ),
+        (
+            "Help desk is the SLA I missed twice and the VPN SOP that matches the client. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "desktop-support": (
+        "Desktop Support, GTBank — Technology (2018 – present) — Lagos",
+        "Field Tech, an OEM partner (2015 – 2018) — Lagos",
+        "Windows, macOS, imaging, hardware, MDM, on-site",
+        (
+            "On-site swap: failed disk, image, BitLocker recovery key from the escrow, user back in under two hours.",
+            "MDM (Intune/similar): a device that left the building lost email. The user was told before it happened.",
+            "Hardware: I keep a spare dock count. “We’ll order it” is not a fix for a trading floor.",
+        ),
+        (
+            "Broke and replaced screens in the field. Warranty tickets with serials.",
+            "macOS and Windows. The runbook is two columns.",
+        ),
+        (
+            "Desktop support is the recovery key and the spare dock. I have restored BitLocker on a trading-floor deadline.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "it-operations-engineer": (
+        "IT Operations Engineer, Interswitch (2019 – present) — Lagos",
+        "Sysadmin, SystemSpecs (2015 – 2019) — Lagos",
+        "monitoring, change, backups, identity, on-call",
+        (
+            "Change: CAB for prod, a back-out, and a window. A “quick fix” without a ticket is how we got a six-hour outage; we do not do that now.",
+            "Backup restore tested quarterly. The last restore was a file share, timed, signed.",
+            "On-call rota with a handoff. A mystery at 08:00 is a failed night.",
+        ),
+        (
+            "Patched and monitored. Ops is the calendar, not the heroics.",
+            "Identity tickets until they had an expiry.",
+        ),
+        (
+            "IT ops is the restore we signed and the quick fix we banned. I have both stories.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "it-manager": (
+        "IT Manager, a Lagos mid-market firm (2019 – present)",
+        "IT Operations Lead, Access Bank — Technology (2015 – 2019) — Lagos",
+        "people, vendors, SLAs, change, reporting",
+        (
+            "Team of six: hiring, 1:1s, and a rota that does not burn the same two people.",
+            "Vendor SLA for the ISP and the laptop OEM. A missed SLA is a credit we actually claimed.",
+            "Monthly to the business: incidents, patch %, and one number they can argue with.",
+        ),
+        (
+            "Led ops before I managed. I still take a shift when we are short.",
+            "Fired a vendor with the email trail. Soft nos waste a year.",
+        ),
+        (
+            "IT management is the credit we claimed and the rota that is fair. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "technical-project-manager": (
+        "Technical Project Manager, Interswitch (2019 – present) — Lagos",
+        "Delivery Lead, a Lagos SI (2016 – 2019)",
+        "plans, risks, vendors, engineering partners, status that was true",
+        (
+            "Core-to-channel cutover: a plan with a kill switch, a weekend, and a status mail that said we were amber when we were amber.",
+            "Risk log with owners. A risk without an owner is a wish.",
+            "Vendors on the critical path had a named deputy. One no-show did not kill the window.",
+        ),
+        (
+            "Tracked engineering work without pretending I could write the code.",
+            "Never greened a status to please a steering group.",
+        ),
+        (
+            "TPM work is the amber mail and the kill switch. I have sent both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "scrum-master": (
+        "Scrum Master, Andela (2019 – present) — remote",
+        "Delivery coordinator, a Lagos product team (2016 – 2019)",
+        "facilitation, impediments, metrics you did not game, delivery",
+        (
+            "Board matched git. A “done” ticket without a merged PR was moved back in the room, not later.",
+            "Impediments had owners and dates. A lingering blocker was a 1:1, not a standup performance.",
+            "Velocity used for forecast, not for beating people. I stopped a chart that was becoming a weapon.",
+        ),
+        (
+            "Facilitated, then checked the merge. Theatre is easy; the merge is the truth.",
+            "Worked with a team that shipped weekly. That is the metric I kept.",
+        ),
+        (
+            "Scrum is the ticket that went back because there was no merge. I moved it in the room.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "solutions-engineer": (
+        "Solutions Engineer, Paystack (2020 – present) — Lagos",
+        "Support Engineer, Interswitch (2016 – 2020) — Lagos",
+        "demos, architecture talks, APIs, POCs",
+        (
+            "POC that ran on the prospect’s test keys: a charge, a webhook, a refund. A slide deck is not a POC.",
+            "Unblocked a go-live: their HMAC clock was 7 minutes off. We documented NTP, they launched.",
+            "Said no to a custom flow we could not support. They bought the standard path.",
+        ),
+        (
+            "Support tickets taught me the real failure modes. Demos now include the failure.",
+            "Wrote the internal note so product heard the same story.",
+        ),
+        (
+            "Solutions engineering is the POC on their keys and the NTP catch. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "sales-engineer": (
+        "Sales Engineer, Flutterwave (2020 – present) — Lagos",
+        "Solutions Engineer, Interswitch (2016 – 2020) — Lagos",
+        "product, objections, POCs, RFPs, the stack you showed",
+        (
+            "RFP answers I could defend on a call. A copied paragraph that was not true did not go out.",
+            "Live demo on a bad hotel wifi. The retry UI was the feature that day.",
+            "Scoped a deal down so we could win without a six-month custom.",
+        ),
+        (
+            "Technical pre-sales with a working sandbox, not a recording only.",
+            "Lost a deal by telling the truth about a gap. I still sleep.",
+        ),
+        (
+            "Sales engineering is the RFP line I would say on a call. I delete the rest.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "technical-writer": (
+        "Technical Writer, Paystack (2019 – present) — Lagos",
+        "Engineer who wrote the docs, Andela (2016 – 2019) — remote",
+        "docs-as-code, APIs, tutorials, review with the team that ships",
+        (
+            "Docs in the same PR as the API change. A field rename without a docs diff failed CI.",
+            "Tutorial that a new merchant completed without Slack. I watched a recording of the first stranger.",
+            "Deprecation notice with a date. A silent removal is a bug in the docs.",
+        ),
+        (
+            "Wrote runbooks as an engineer. Then made it my job.",
+            "Rejected screenshots of a staging URL that would 404.",
+        ),
+        (
+            "Technical writing is the PR that fails without a docs diff. I have that check.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "developer-advocate": (
+        "Developer Advocate, Paystack (2020 – present) — Lagos / remote",
+        "Backend Engineer, Paystack (2016 – 2020) — Lagos",
+        "samples, talks, GitHub, the product you actually used",
+        (
+            "Sample repo that still runs: a charge, a webhook, a test. A broken sample is a P1 on my board.",
+            "Talk with a live demo that failed once; the backup was a recorded happy path plus the error on screen. Honesty landed.",
+            "Filed issues on our own SDK and fixed two of them. Advocacy without the repo is marketing.",
+        ),
+        (
+            "Shipped the API I later explained. I still read the changelog before a talk.",
+            "Office hours with merchants. The notes went to product the same day.",
+        ),
+        (
+            "DevRel is the sample that still runs and the SDK issue I filed. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "it-auditor": (
+        "IT Auditor, a Nigerian bank (2019 – present) — Lagos",
+        "ITGC tester, Big Four secondment (2016 – 2019) — Lagos",
+        "ITGC, sampling, evidence, SOX or CBN, writeups",
+        (
+            "Access sample: 25 joiners, 25 leavers. A leaver with active AD was a finding with the screenshot dated.",
+            "Change sample: ticket, approval, back-out. A prod change without a ticket was severity high.",
+            "Writeup that named the control, the exception, and the owner. Adjectives were edited out.",
+        ),
+        (
+            "Pulled evidence for someone else’s tests. Learned speed without skipping the date on the screenshot.",
+            "Never accepted a policy as operating effectiveness.",
+        ),
+        (
+            "Audit is the leaver still in AD and the dated screenshot. I have that finding.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "database-administrator": (
+        "Database Administrator, Interswitch (2018 – present) — Lagos",
+        "SQL Developer, a Nigerian bank (2015 – 2018) — Lagos",
+        "SQL, backups, replication, permissions, incident recovery",
+        (
+            "SQL Server / Postgres: nightly backup plus a restore to a side instance every month. The restore is the job.",
+            "Replication lag page. A replica that was 40 minutes behind was a P2, not “async is fine.”",
+            "Permissions: no db_owner for app logins. A grant that snuck in was revoked with a ticket.",
+        ),
+        (
+            "Wrote the queries I later indexed. DBA without SQL is a button-clicker.",
+            "Incident: a full disk on the log drive. I still check that first.",
+        ),
+        (
+            "DBA work is the monthly restore and the 40-minute lag. I have paged on both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "postgresql-dba": (
+        "PostgreSQL DBA, Paystack (2019 – present) — Lagos",
+        "Database Engineer, Flutterwave (2016 – 2019) — Lagos",
+        "PostgreSQL, replication, EXPLAIN, backups, extensions",
+        (
+            "Primary + replica: lag monitor, and a failover drill that the app survived because we tested connection retry.",
+            "EXPLAIN (ANALYZE, BUFFERS) on a charge lookup. A seq scan on a growing table became an index in the same week.",
+            "pg_dump + WAL. A restore test recovered to a named time, not “last night.”",
+        ),
+        (
+            "Vacuum and bloat. A table that never got vacuumed was a 3 a.m. page once.",
+            "Extensions pinned. A surprise version in prod is a finding.",
+        ),
+        (
+            "Postgres is the failover the app survived and the seq scan we indexed. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "oracle-dba": (
+        "Oracle DBA, a Nigerian bank (2018 – present) — Lagos",
+        "Oracle Developer, an SI (2015 – 2018) — Lagos",
+        "Oracle, RMAN, Data Guard, performance, patching",
+        (
+            "Data Guard: switchover drill with the app team. A lag that was “normal” until it was not has a number now.",
+            "RMAN restore to a cloned host. The tape that “had the backup” and did not is a story I tell in CAB.",
+            "SQL tuning: a bind-peek surprise. The fix was a baseline, not a hint forever.",
+        ),
+        (
+            "Wrote PL/SQL. Then I had to keep it running.",
+            "Patch cycles with a back-out. We used the back-out once.",
+        ),
+        (
+            "Oracle is the restore that proved the tape was empty. I have that CAB note.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "salesforce-developer": (
+        "Salesforce Developer, a Lagos enterprise programme (2019 – present)",
+        "CRM Developer, an SI (2016 – 2019) — Lagos",
+        "Apex, Lightning, SOQL, flows, deployment",
+        (
+            "Apex trigger that does not query in a loop. A bulk load of 200 leads used to time out; it does not.",
+            "Deploy via pipelines, not change sets from a laptop on Friday.",
+            "SOQL with selective filters. A report that scanned everything was rewritten with the architect.",
+        ),
+        (
+            "Flows until they hid logic. Then Apex with tests.",
+            "Never shipped without a test that used `seeAllData=false`.",
+        ),
+        (
+            "Salesforce is the bulk 200 and the pipeline deploy. I do not Friday-change-set.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "sap-technical-consultant": (
+        "SAP Technical Consultant, a Nigerian bank programme (2018 – present) — Lagos",
+        "ABAP Developer, an SI (2015 – 2018) — Lagos",
+        "ABAP, Basis coordination, transports, the module you touched",
+        (
+            "ABAP exits on a payments-related module: transports through QA, and a dump I fixed before PRD.",
+            "Partnered with Basis on the window. A transport without a back-out partner did not go.",
+            "Documented the user-exit so the next consultant did not reverse-engineer it from a dump.",
+        ),
+        (
+            "Reports and interfaces. Then the dump at 2 a.m.",
+            "Never transported untested to PRD because “the business is waiting.” They wait for a dump longer.",
+        ),
+        (
+            "SAP technical work is the transport with a partner and the dump we caught in QA. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "erp-developer": (
+        "ERP Developer, SystemSpecs (2018 – present) — Lagos",
+        "Application Developer, an SI (2015 – 2018) — Lagos",
+        "ERP customizations, integrations, testing, the product name",
+        (
+            "Custom posting in Remita-adjacent flows: test company code, a reversal, and a recon that matched.",
+            "Integration file to a bank: encoding, line endings, and a reject we could explain.",
+            "Release notes the ops team used. A silent field was a bug.",
+        ),
+        (
+            "Configured before I customized. Custom was the last resort.",
+            "Sat with recon. If they cannot match, I am not done.",
+        ),
+        (
+            "ERP is the recon that matched and the reject we could explain. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "servicenow-developer": (
+        "ServiceNow Developer, a Lagos enterprise (2019 – present)",
+        "ITSM Analyst, a bank (2016 – 2019) — Lagos",
+        "JavaScript, Flow Designer, ITSM, update sets, CMDB",
+        (
+            "Catalog item with a flow that assigns and SLA-clocks. A flow that emailed everyone was rewritten to a group.",
+            "Update sets in order. A skipped set that broke prod is a story I use in review.",
+            "CMDB: a server CI without an owner is not a CI. We stopped pretending.",
+        ),
+        (
+            "Tickets before I automated them. The pain is the spec.",
+            "Never cloned a flow I did not understand.",
+        ),
+        (
+            "ServiceNow is the skipped update set. I have that review story.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "microsoft-365-administrator": (
+        "Microsoft 365 Administrator, Access Bank — Technology (2019 – present) — Lagos",
+        "Windows Administrator, GTBank — Technology (2016 – 2019) — Lagos",
+        "Entra ID, Exchange, Intune, SharePoint, Conditional Access",
+        (
+            "Conditional Access: MFA for all, legacy auth blocked, and a break-glass we tested.",
+            "Intune: a lost phone wiped mail. The user was in the SOP before the loss.",
+            "Exchange: transport rule that stopped a PAN-shaped string leaving the tenant. It fired on a real mail.",
+        ),
+        (
+            "AD and file shares. Then the cloud copy of the same fights.",
+            "SharePoint permissions until they matched the org chart, roughly.",
+        ),
+        (
+            "M365 is the wipe SOP and the PAN rule that fired. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "embedded-engineer": (
+        "Embedded Engineer, a Lagos OEM partner (2018 – present)",
+        "Firmware intern-to-engineer, same shop (2015 – 2018)",
+        "C, RTOS, peripherals, debugging, schematics",
+        (
+            "C on an MCU: UART to a modem, a watchdog that actually bit, and a brown-out we reproduced on the bench.",
+            "Schematic next to the code. A pin that was not what the net name said was a day of my life.",
+            "Release: hex + git tag. A “latest.bin” on a USB stick is not a release.",
+        ),
+        (
+            "Brought up the first board with a scope and a coffee.",
+            "Never shipped a busy-wait that made the watchdog a liar.",
+        ),
+        (
+            "Embedded is the watchdog that bit and the pin that lied. I have both on a bench.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "firmware-engineer": (
+        "Firmware Engineer, a device team in Lagos (2018 – present)",
+        "Embedded Engineer, OEM partner (2015 – 2018)",
+        "C, bootloaders, hardware bring-up, test jigs, versioning",
+        (
+            "Bootloader + app split: a bad app cannot brick the loader. We tested that by flashing garbage on purpose.",
+            "Test jig that presses the button 1,000 times. A hang at 400 is a finding.",
+            "Version in a register the host can read. “Which firmware?” is not a Slack poll.",
+        ),
+        (
+            "Wrote the first UART hello. Then the rest.",
+            "Scope traces in the ticket. Photos of LEDs are not traces.",
+        ),
+        (
+            "Firmware is flashing garbage on purpose and still booting the loader. I have that test.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "iot-engineer": (
+        "IoT Engineer, a Lagos telemetry project (2019 – present)",
+        "Embedded Engineer, OEM partner (2016 – 2019)",
+        "MQTT, firmware, cloud ingest, OTA, hardware constraints",
+        (
+            "MQTT to a broker with TLS and a device cert. A shared password for all devices was a no.",
+            "OTA with dual banks. A failed image rolled back. We forced a fail in staging.",
+            "Field: a unit in Ibadan that only came on at night. The log rotated; we still had the last 2 KB.",
+        ),
+        (
+            "Firmware first. Cloud later. The device still has to boot.",
+            "Power budget on a spreadsheet that matched the current draw.",
+        ),
+        (
+            "IoT is dual-bank OTA and a 2 KB log from Ibadan. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "gameplay-programmer": (
+        "Gameplay Programmer, a Lagos/remote studio (2019 – present)",
+        "Gameplay Engineer, student and contract titles (2016 – 2019)",
+        "C#, Unity, gameplay, debugging, shipping a build",
+        (
+            "Unity: a combat loop that stayed at 30fps on a mid Android. A spike was a GC we moved off Update.",
+            "Netcode for a 2-player mode: predicted input, a reconcile that did not rubber-band on 150ms.",
+            "Shipped a build to a store. Review notes and a version that old saves could load.",
+        ),
+        (
+            "Prototypes that died. The ones that shipped had a frame budget written down.",
+            "Debugged a save that vanished on kill-app. It was a flush we skipped.",
+        ),
+        (
+            "Gameplay is the GC spike and the save that survived kill-app. I have both on a shipped build.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "graphics-engineer": (
+        "Graphics Engineer, a remote studio (2020 – present)",
+        "Engine programmer, contract (2016 – 2020)",
+        "C++, shaders, GPU, profiling, the engine",
+        (
+            "Frame budget: 16.6ms. A pass that was 4ms on PC and 11ms on the target phone was the one we cut.",
+            "Shader variants that exploded compile time. We capped them and measured.",
+            "Profiler captures in the ticket, not “it feels smoother.”",
+        ),
+        (
+            "Wrote a blit and a debug overlay. Then the real passes.",
+            "Never shipped a pink shader as “placeholder” in a store build.",
+        ),
+        (
+            "Graphics is the 11ms pass we cut and the capture in the ticket. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "blockchain-engineer": (
+        "Blockchain Engineer, Nethermind (2019 – present) — remote",
+        "Backend Engineer, Paystack (2016 – 2019) — Lagos",
+        "Solidity, testing, wallets, audits, nodes",
+        (
+            "Contracts + a node we ran: a mainnet tx, a test on a fork, and an audit finding we retested.",
+            "Wallet integration: wrong chain id is a user-visible error.",
+            "Did not treat mempool as final. Payments work taught me that before chains did.",
+        ),
+        (
+            "Idempotent APIs. Then logs on a chain.",
+            "Read other people’s post-mortems before writing bytecode.",
+        ),
+        (
+            "Blockchain engineering is the fork test and the chain-id error. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "gis-engineer": (
+        "GIS Engineer, a Lagos mapping project (2019 – present)",
+        "Data Engineer, a utilities client (2016 – 2019) — Lagos",
+        "PostGIS, QGIS, Python, projections, tiles",
+        (
+            "PostGIS: a projection mistake that put a road 200m off. The ticket is the SRID.",
+            "Tile pipeline that rebuilt overnight. A missing zoom was a 404 we monitored.",
+            "QGIS project in git. A shapefile that only lived on a laptop was imported or deleted.",
+        ),
+        (
+            "CSV of coordinates until they lied. Then a real CRS.",
+            "Field GPS vs the map. The map lost until we proved otherwise.",
+        ),
+        (
+            "GIS is the SRID that was wrong by 200m. I have that ticket.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "hpc-engineer": (
+        "HPC Engineer, a research cluster (2019 – present) — remote / Lagos",
+        "Linux Administrator, a university lab (2016 – 2019)",
+        "Linux, schedulers, MPI, storage, performance",
+        (
+            "Slurm (or similar): fair share, a stuck job we drained, and a node that failed health and left the pool.",
+            "MPI job that did not scale past 32 ranks until we found the allreduce. The plot is in the ticket.",
+            "Scratch vs archive. A full scratch that killed a 3-day job is why the quota exists.",
+        ),
+        (
+            "Linux first. The scheduler is a way to share it.",
+            "Never ran as root on compute. That was a ban.",
+        ),
+        (
+            "HPC is the 3-day job killed by a full scratch. The quota is the product.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "robotics-engineer": (
+        "Robotics Engineer, a Lagos/remote robotics group (2019 – present)",
+        "Embedded Engineer, OEM partner (2016 – 2019)",
+        "ROS, C++, Python, sensors, control",
+        (
+            "ROS nodes: a driver for a lidar that dropped packets on a bad USB; the bag file is the proof.",
+            "Control loop rate measured, not hoped. A 50Hz loop that was 18Hz on the NUC was a scheduling issue.",
+            "Sim + real. A policy that only worked in Gazebo was not a demo.",
+        ),
+        (
+            "Firmware on the actuator. Then the node.",
+            "E-stop that actually cut power. A software e-stop only is a finding.",
+        ),
+        (
+            "Robotics is the bag file and the 18Hz loop. I have both.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "ux-engineer": (
+        "UX Engineer, Kuda (2020 – present) — Lagos",
+        "Frontend Engineer, Cowrywise (2016 – 2020) — Lagos",
+        "HTML, CSS, JS, accessibility, design system",
+        (
+            "Design-system buttons with all states, including disabled during a charge. A designer’s Figma that missed disabled was a ticket both ways.",
+            "Token pipeline: colour change in one file. A hex that was copied 40 times was the old world.",
+            "Reviewed PRs for focus rings. A `outline: none` without a replacement failed review.",
+        ),
+        (
+            "Built screens, then the library those screens should have used.",
+            "Sat in usability on a cheap phone. The library changed.",
+        ),
+        (
+            "UX engineering is the disabled charge button and the banned `outline: none`. I have both in the system.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "accessibility-engineer": (
+        "Accessibility Engineer, a Lagos product team (2020 – present)",
+        "Frontend Engineer, Kuda (2016 – 2020) — Lagos",
+        "WCAG, screen readers, ARIA, audits, engineering partners",
+        (
+            "NVDA/VoiceOver pass on the transfer flow. A live region that did not announce “failed” was a P1.",
+            "Audit with issues, WCAG refs, and a PR. A PDF of scores without tickets is not an audit.",
+            "Colour contrast tokens. A grey on grey that passed on a Mac and failed in sunlight was recoded.",
+        ),
+        (
+            "Frontend first. Then the audits.",
+            "Never added ARIA to a native button that already had a name.",
+        ),
+        (
+            "Accessibility is the live region for “failed” and the ticket, not a score PDF. I have the P1.",
+            "I will submit this pack myself.",
+        ),
+    ),
+    "fintech-engineer": (
+        "FinTech Engineer, Paystack (2019 – present) — Lagos",
+        "Backend Engineer, Interswitch (2016 – 2019) — Lagos",
+        "backend, SQL, idempotency, audit logs, ledger path",
+        (
+            "Ledger row for a charge: immutable after post, reversal is a new row. A update-in-place was a design we rejected.",
+            "Idempotency key on the API and a unique constraint. A double-click is one row.",
+            "Audit log that a recon team can read without me. If they Slack me for every line, the log failed.",
+        ),
+        (
+            "Switching APIs. Same money, older protocols.",
+            "Learned kobo integers before I learned frameworks.",
+        ),
+        (
+            "Fintech is the immutable row and the unique key. I have rejected update-in-place.",
+            "I will submit this pack myself.",
+        ),
+    ),
 }
 
 
