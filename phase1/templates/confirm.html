@@ -2,7 +2,7 @@
 {% block title %}Confirm{% endblock %}
 {% block body %}
 <h1>Confirm</h1>
-<p>This is what we read. Check it. Confirm, and jobs that match this résumé rise to the top with a fit percent. A skill with no bullet underneath will be dropped. Education and certifications are optional.</p>
+<p>This is what we read from your résumé. Skills come from the file — check them, strike any that are not yours. Education and certifications are optional.</p>
 <form method="post" class="stack" style="max-width:40rem">
   <label>Name <input name="name" value="{{ draft.name }}"></label>
   <label>Email <input name="email" value="{{ draft.email }}" autocomplete="email"></label>
@@ -14,7 +14,9 @@
   <label>Work Authorization / Location
     <input name="work_authorization" value="{{ auth_location }}" placeholder="Nigeria, Kenya, United States…">
   </label>
-  <label>Skills (comma) <input name="skills" value="{{ (draft.skills or []) | join(', ') }}"></label>
+  <label>Skills
+    <input name="skills" value="{{ (draft.skills or []) | join(', ') }}" placeholder="Taken from your résumé — edit if needed">
+  </label>
   <label>Educational qualifications <span class="muted">Not mandatory</span>
     <textarea class="short" name="education" placeholder="One per line. Leave blank if none.">{{ (draft.education or []) | join('\n') }}</textarea>
   </label>

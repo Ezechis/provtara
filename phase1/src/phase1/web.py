@@ -42,7 +42,6 @@ from phase1.templates_catalog import (
 )
 from phase1.parse import (
     extract_upload,
-    grounded_skills,
     normalize_career_start,
     propose_from_text,
     split_optional_lines,
@@ -499,15 +498,10 @@ def create_app(test_config: dict | None = None) -> Flask:
                 draft["work_authorization"] = []
             if loc:
                 draft["location"] = loc
-            if request.form.get("skills"):
+            if "skills" in request.form:
                 draft["skills"] = [s.strip() for s in request.form["skills"].split(",") if s.strip()]
             draft["education"] = split_optional_lines(request.form.get("education") or "")
             draft["certifications"] = split_optional_lines(request.form.get("certifications") or "")
-            bullets = []
-            for role in draft.get("experience") or []:
-                bullets.extend(role.get("bullets") or [])
-            listed = draft.get("skills") or []
-            draft["skills"] = grounded_skills(listed, bullets)
             try:
                 profile_from_dict(draft)
             except (KeyError, TypeError, ValueError):
@@ -520,8 +514,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             save_profile(db(), session["user_id"], draft, raw_text)
             clear_draft(db(), session["user_id"])
             flash(
-                "Profile confirmed. Skills without a bullet were struck. "
-                "Jobs that match your résumé are at the top, each with an evidenced fit percent."
+                "Profile confirmed. Jobs that match your résumé are at the top, each with an evidenced fit percent."
             )
             n = _notify_user(session["user_id"])
             if n:

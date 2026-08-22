@@ -24,8 +24,8 @@ def test_propose_does_not_invent_a_bullet_to_ground_skills():
     draft = propose_from_text(text)
     assert "Experience described in the uploaded résumé." not in str(draft)
     skills = {s.lower() for s in draft["skills"]}
-    assert "kubernetes" not in skills
-    assert "terraform" not in skills
+    assert "kubernetes" in skills
+    assert "python" in skills
     assert draft["experience"] == []
 
 
@@ -75,8 +75,29 @@ Python, Django, PostgreSQL, Docker, Kubernetes
     assert "+234" in draft["phone"]
     skills = {s.lower() for s in draft["skills"]}
     assert "django" in skills
-    assert "kubernetes" not in skills
+    assert "python" in skills
+    assert "docker" in skills
+    assert "kubernetes" in skills
     assert "payments APIs" in draft["summary"]
+
+
+def test_skills_section_fills_confirm_list():
+    text = """Ada Okafor
+ada@example.com
+Lagos, Nigeria
+
+EXPERIENCE
+Backend Engineer, Paystack, Jan 2024 – Present
+- Designed checkout APIs
+
+SKILLS
+Python, Django, PostgreSQL, Docker, SQL, Excel
+"""
+    draft = propose_from_text(text)
+    skills = {s.lower() for s in draft["skills"]}
+    assert skills
+    for need in ("python", "django", "postgresql", "docker", "sql", "excel"):
+        assert need in skills
 
 
 def test_grounded_skills_drop_unevidenced_tokens():

@@ -91,6 +91,8 @@ def test_confirm_page_shows_phone_profile_education_and_full_country(client):
     assert "Work Authorization / Location" in page
     assert "Nigeria" in page
     assert ">NG<" not in page
+    assert "Python" in page
+    assert "Django" in page
     assert "Educational qualifications" in page
     assert "Certifications" in page
     assert "Not mandatory" in page

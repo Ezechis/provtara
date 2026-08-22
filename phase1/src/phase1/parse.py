@@ -27,6 +27,27 @@ _TITLE_HINT = re.compile(
     r"architect|specialist|consultant|intern|officer|lead|head of|director)\b",
     re.I,
 )
+_INLINE_SKILLS = re.compile(
+    r"^(?:technical\s+)?(?:skills|technologies|tech stack|tools|competenc(?:e|ies|y)?)"
+    r"\s*[:\-–]\s*(.+)$",
+    re.I,
+)
+_SKILL_STOP = {
+    "and",
+    "or",
+    "with",
+    "including",
+    "skills",
+    "proficient",
+    "expertise",
+    "knowledge",
+    "tools",
+    "technologies",
+    "stack",
+    "others",
+    "etc",
+    "various",
+}
 
 
 def _skills_in(text: str) -> list[str]:
@@ -40,6 +61,47 @@ def _skills_in(text: str) -> list[str]:
             seen.add(key)
             found.append(skill)
     return found
+
+
+def _split_skill_tokens(blob: str) -> list[str]:
+    blob = (blob or "").replace("•", ",").replace("|", ",").replace("·", ",").replace("/", ",")
+    blob = re.sub(r"[()]", " ", blob)
+    parts = re.split(r"[,;]+", blob)
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        token = re.sub(r"^[\-–—*]\s*", "", part).strip()
+        token = re.sub(r"\s+", " ", token)
+        if not token or token.lower() in _SKILL_STOP:
+            continue
+        if len(token) > 42:
+            for hit in _skills_in(token):
+                if hit.lower() not in seen:
+                    seen.add(hit.lower())
+                    out.append(hit)
+            continue
+        if len(token) < 2 and token.upper() not in {"C", "R", "GO"}:
+            continue
+        key = token.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(token)
+    if not out:
+        out.extend(_skills_in(blob))
+    return out
+
+
+def merge_skills(*groups: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        for skill in group or []:
+            key = " ".join(skill.lower().split())
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            out.append(skill.strip())
+    return out
 
 
 def normalize_career_start(raw: str, fallback: str = "2023-01-01") -> str:
@@ -204,7 +266,8 @@ def propose_from_text(text: str) -> dict:
     this_year = date.today().year
     years = [int(y) for y in _YEAR.findall(text) if 1995 <= int(y) <= this_year]
     career_start = normalize_career_start(f"{min(years)}-01-01" if years else "2023-01-01")
-    listed_skills = _skills_in(text)
+    catalog_skills = _skills_in(text)
+    section_skills: list[str] = []
 
     section = ""
     roles: list[dict] = []
@@ -224,6 +287,10 @@ def propose_from_text(text: str) -> dict:
 
     for ln in lines:
         if ln in {name, email, phone, location}:
+            continue
+        inline_skills = _INLINE_SKILLS.match(ln)
+        if inline_skills:
+            section_skills.extend(_split_skill_tokens(inline_skills.group(1)))
             continue
         heading = _SECTION.match(ln)
         if heading:
@@ -255,6 +322,7 @@ def propose_from_text(text: str) -> dict:
                 summary_bits.append(_clean_bullet(ln))
             continue
         if section == "skills":
+            section_skills.extend(_split_skill_tokens(ln))
             continue
         if _looks_like_role_header(ln):
             flush()
@@ -271,6 +339,9 @@ def propose_from_text(text: str) -> dict:
             continue
         cleaned = _clean_bullet(ln)
         if re.match(r"(?i)^(skills|technologies|tech stack|tools|competenc)\b", cleaned):
+            extra = _INLINE_SKILLS.match(cleaned)
+            if extra:
+                section_skills.extend(_split_skill_tokens(extra.group(1)))
             continue
         tags = _skills_in(cleaned)
         is_bullet = bool(re.match(r"^[\-•–*—]\s+", ln)) or len(cleaned) >= 28
@@ -318,7 +389,7 @@ def propose_from_text(text: str) -> dict:
         "remote_ok": True,
         "work_authorization": guess_work_authorization(text),
         "career_start": career_start,
-        "skills": grounded_skills(listed_skills, bullets),
+        "skills": merge_skills(section_skills, catalog_skills, [t for b in bullets for t in (b.get("tags") or [])]),
         "employers": employers,
         "summary": summary[:400],
         "education": education[:8],
