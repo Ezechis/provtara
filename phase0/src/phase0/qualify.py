@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from phase0.geo import auth_matches, country_label
 from phase0.models import (
     Bullet,
     FitScore,
@@ -53,6 +54,7 @@ def profile_from_dict(data: dict) -> Profile:
         experience=tuple(roles),
         summary=data.get("summary") or "",
         education=tuple(data.get("education") or []),
+        certifications=tuple(data.get("certifications") or []),
         phone=data.get("phone") or "",
     )
 
@@ -69,6 +71,7 @@ def profile_to_dict(profile: Profile) -> dict:
         "employers": list(profile.employers),
         "summary": profile.summary,
         "education": list(profile.education),
+        "certifications": list(profile.certifications),
         "phone": profile.phone,
         "experience": [
             {
@@ -142,14 +145,18 @@ def gap_table(profile: Profile, job: Job) -> list[GapRow]:
             )
         )
     if job.work_authorization_any_of:
-        allowed = {a.upper() for a in job.work_authorization_any_of}
-        have = {a.upper() for a in profile.work_authorization}
-        ok = "ANY" in allowed or bool(allowed & have)
-        label = "Work authorization: " + " / ".join(job.work_authorization_any_of)
+        ok = auth_matches(profile.work_authorization, job.work_authorization_any_of)
+        names = [country_label(a) for a in job.work_authorization_any_of if country_label(a) != "ANY"]
+        if any(str(a).upper() == "ANY" or country_label(a) == "ANY" for a in job.work_authorization_any_of):
+            names.append("any")
+        label = "Work authorization / location: " + " / ".join(names or ["any"])
+        evidence = [country_label(a) for a in profile.work_authorization] if ok else []
+        if profile.location:
+            evidence = [profile.location] + [e for e in evidence if e.lower() not in profile.location.lower()]
         rows.append(
             GapRow(
                 requirement=label,
-                evidence=list(profile.work_authorization) if ok else [],
+                evidence=evidence,
                 verdict="met" if ok else "not met",
             )
         )
@@ -168,10 +175,7 @@ def _must_item_scores(profile: Profile, job: Job) -> list[float]:
         else:
             scores.append(min(1.0, max(0.0, have / need)))
     if job.work_authorization_any_of:
-        allowed = {a.upper() for a in job.work_authorization_any_of}
-        have_auth = {a.upper() for a in profile.work_authorization}
-        ok = "ANY" in allowed or bool(allowed & have_auth)
-        scores.append(1.0 if ok else 0.0)
+        scores.append(1.0 if auth_matches(profile.work_authorization, job.work_authorization_any_of) else 0.0)
     return scores
 
 

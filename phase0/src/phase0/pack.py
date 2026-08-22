@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from phase0.geo import country_label
 from phase0.models import Job, Pack, Profile, Role, canon
 from phase0.qualify import require_gate
 from phase0.truth import TruthFailed, require_clean
@@ -148,17 +149,18 @@ def _ordered_role_bullets(role: Role, job: Job) -> list[str]:
 def _render_resume(profile: Profile, job: Job, selection: list[str]) -> str:
     selected = set(selection)
     lead, extra = _ordered_skills(profile, job)
-    contact = [profile.email, profile.location]
-    if profile.phone:
-        contact.insert(1, profile.phone)
-    auth = ", ".join(profile.work_authorization)
+    contact = [profile.email, profile.phone, profile.location]
     lines = [
         profile.name,
         _recent_title(profile) + "  ·  " + job.title + ", " + job.company,
         " · ".join(p for p in contact if p),
     ]
-    if auth:
-        lines.append("Work authorization: " + auth)
+    auth_names = [country_label(a) for a in profile.work_authorization if country_label(a) not in {"", "ANY"}]
+    loc = (profile.location or "").strip()
+    if loc:
+        lines.append("Work authorization / location: " + loc)
+    elif auth_names:
+        lines.append("Work authorization / location: " + ", ".join(auth_names))
     lines.extend(
         [
             "",
@@ -199,6 +201,11 @@ def _render_resume(profile: Profile, job: Job, selection: list[str]) -> str:
     if profile.education:
         lines.append("EDUCATION")
         for row in profile.education:
+            lines.append(f"- {row}")
+        lines.append("")
+    if profile.certifications:
+        lines.append("CERTIFICATIONS")
+        for row in profile.certifications:
             lines.append(f"- {row}")
         lines.append("")
     return "\n".join(lines).strip() + "\n"

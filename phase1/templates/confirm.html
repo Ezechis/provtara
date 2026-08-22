@@ -2,17 +2,25 @@
 {% block title %}Confirm{% endblock %}
 {% block body %}
 <h1>Confirm</h1>
-<p>This is what we read. Check it. Confirm, and jobs that match this résumé rise to the top with a fit percent. A skill with no bullet underneath will be dropped.</p>
+<p>This is what we read. Check it. Confirm, and jobs that match this résumé rise to the top with a fit percent. A skill with no bullet underneath will be dropped. Education and certifications are optional.</p>
 <form method="post" class="stack" style="max-width:40rem">
   <label>Name <input name="name" value="{{ draft.name }}"></label>
-  <label>Email <input name="email" value="{{ draft.email }}"></label>
-  <label>Location <input name="location" value="{{ draft.location }}"></label>
+  <label>Email <input name="email" value="{{ draft.email }}" autocomplete="email"></label>
+  <label>Phone <input name="phone" value="{{ draft.phone or '' }}" autocomplete="tel" placeholder="Optional"></label>
+  <label>Profile
+    <textarea class="short" name="profile" placeholder="Short professional profile — optional to edit">{{ draft.summary or '' }}</textarea>
+  </label>
   <label>Career start <input name="career_start" value="{{ draft.career_start }}"></label>
-  <label>Work authorization (comma) <input name="work_authorization" value="{{ (draft.work_authorization or []) | join(', ') }}"></label>
+  <label>Work Authorization / Location
+    <input name="work_authorization" value="{{ auth_location }}" placeholder="Nigeria, Kenya, United States…">
+  </label>
   <label>Skills (comma) <input name="skills" value="{{ (draft.skills or []) | join(', ') }}"></label>
-  {% if draft.education %}
-  <p class="muted">Education we read: {{ draft.education | join(' · ') }}</p>
-  {% endif %}
+  <label>Educational qualifications <span class="muted">Not mandatory</span>
+    <textarea class="short" name="education" placeholder="One per line. Leave blank if none.">{{ (draft.education or []) | join('\n') }}</textarea>
+  </label>
+  <label>Certifications <span class="muted">Not mandatory</span>
+    <textarea class="short" name="certifications" placeholder="One per line. Leave blank if none.">{{ (draft.certifications or []) | join('\n') }}</textarea>
+  </label>
   <input type="hidden" name="confirm" value="1">
   <p class="actions"><button class="btn" type="submit">Confirm — show matching jobs</button></p>
 </form>

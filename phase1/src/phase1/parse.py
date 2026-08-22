@@ -59,11 +59,24 @@ def normalize_career_start(raw: str, fallback: str = "2023-01-01") -> str:
 
 
 def guess_work_authorization(text: str) -> list[str]:
-    blob = (text or "").lower()
-    found: list[str] = []
+    from phase0.geo import country_label, split_auth_location
+
+    head = "\n".join((text or "").splitlines()[:12])
+    labels, _loc = split_auth_location(head)
+    if labels:
+        return labels
+    blob = head.lower()
     if any(k in blob for k in ("nigeria", "lagos", "abuja", "port harcourt", "naija")):
-        found.append("NG")
-    return found
+        return [country_label("NG")]
+    return []
+
+
+def split_optional_lines(raw: str) -> list[str]:
+    text = (raw or "").replace("\r\n", "\n").strip()
+    if not text:
+        return []
+    parts = [ln.strip(" •-\t") for ln in text.split("\n")]
+    return [p for p in parts if p]
 
 
 def grounded_skills(listed: list[str], bullets: list[dict]) -> list[str]:
@@ -196,6 +209,7 @@ def propose_from_text(text: str) -> dict:
     section = ""
     roles: list[dict] = []
     education: list[str] = []
+    certifications: list[str] = []
     summary_bits: list[str] = []
     loose: list[dict] = []
     current: dict | None = None
@@ -217,6 +231,8 @@ def propose_from_text(text: str) -> dict:
             flush()
             if key.startswith("edu") or key == "academic":
                 section = "edu"
+            elif "certif" in key:
+                section = "cert"
             elif "skill" in key or "tech" in key:
                 section = "skills"
             elif key in {"summary", "profile", "objective"}:
@@ -229,6 +245,10 @@ def propose_from_text(text: str) -> dict:
         if section == "edu":
             if len(ln) > 8:
                 education.append(ln)
+            continue
+        if section == "cert":
+            if len(ln) > 4:
+                certifications.append(_clean_bullet(ln))
             continue
         if section == "sum":
             if len(ln) > 20:
@@ -302,5 +322,6 @@ def propose_from_text(text: str) -> dict:
         "employers": employers,
         "summary": summary[:400],
         "education": education[:8],
+        "certifications": certifications[:12],
         "experience": roles,
     }

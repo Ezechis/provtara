@@ -81,6 +81,47 @@ def test_register_required_before_upload(client):
     assert "/login" in r.headers["Location"]
 
 
+def test_confirm_page_shows_phone_profile_education_and_full_country(client):
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    page = client.get("/confirm").get_data(as_text=True)
+    assert 'name="phone"' in page
+    assert 'name="location"' not in page
+    assert "Profile" in page
+    assert "Work Authorization / Location" in page
+    assert "Nigeria" in page
+    assert ">NG<" not in page
+    assert "Educational qualifications" in page
+    assert "Certifications" in page
+    assert "Not mandatory" in page
+    saved = client.post(
+        "/confirm",
+        data={
+            "confirm": "1",
+            "name": "Jordan Hale",
+            "email": "jordan.hale@example.com",
+            "phone": "+234 801 000 0000",
+            "profile": "Backend engineer shipping Django APIs.",
+            "career_start": "2023-02-01",
+            "work_authorization": "Lagos, Nigeria",
+            "skills": "Python, Django, PostgreSQL, Docker",
+            "education": "B.Sc Computer Science, University of Lagos",
+            "certifications": "",
+        },
+        follow_redirects=True,
+    )
+    assert saved.status_code == 200
+    assert "Your matches" in saved.get_data(as_text=True)
+    assert "Harbor Ledger" in saved.get_data(as_text=True)
+    pack = client.post("/jobs/yes-django-backend/pack", follow_redirects=True)
+    text = client.get("/packs/yes-django-backend/resume.md").get_data(as_text=True)
+    assert "+234 801 000 0000" in text
+    assert "Nigeria" in text
+    assert "Work authorization / location" in text
+    assert "University of Lagos" in text
+    assert "CERTIFICATIONS" not in text
+
+
 def test_sample_profile_then_qualified_job_not_sre(client):
     _register_and_login(client)
     r = client.post("/upload/sample", follow_redirects=True)

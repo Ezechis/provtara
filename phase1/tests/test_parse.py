@@ -33,9 +33,10 @@ def test_propose_guesses_ng_auth_from_lagos_not_by_default():
     local = propose_from_text(
         "Chioma\nc@example.com\nLagos, Nigeria\nBuilt Django REST APIs on PostgreSQL."
     )
-    assert "NG" in local["work_authorization"]
+    assert "Nigeria" in local["work_authorization"]
+    assert "NG" not in local["work_authorization"]
     remote = propose_from_text(
-        "Alex\nalex@example.com\nBerlin\nBuilt Django REST APIs on PostgreSQL."
+        "Alex\nalex@example.com\nOslo\nBuilt Django REST APIs on PostgreSQL."
     )
     assert remote["work_authorization"] == []
 

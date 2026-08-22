@@ -34,6 +34,7 @@ class Profile:
     experience: tuple[Role, ...]
     summary: str
     education: tuple[str, ...] = ()
+    certifications: tuple[str, ...] = ()
     phone: str = ""
     as_of: date = date(2026, 8, 20)
 

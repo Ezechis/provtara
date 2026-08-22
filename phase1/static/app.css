@@ -340,6 +340,7 @@ input[type="checkbox"], input[type="radio"] { width: auto; }
   color: var(--paper);
 }
 textarea { min-height: 12rem; }
+textarea.short { min-height: 5.5rem; }
 .pick { display: flex; gap: 0.5rem; align-items: flex-start; color: inherit; }
 .pick input { margin-top: 0.35rem; }
 .sources { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; padding-left: 1.1rem; }

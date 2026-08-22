@@ -25,6 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from phase0.models import GateFailed, TruthFailed
 from phase0.pack import prepare_pack
+from phase0.geo import auth_location_display, split_auth_location
 from phase0.qualify import load_profile, profile_from_dict, profile_to_dict, qualify
 from phase1.catalog import all_jobs, get_job
 from phase1.ingest import BOARD_HOMES, SOURCES, fetch_free_boards, job_source
@@ -39,7 +40,13 @@ from phase1.templates_catalog import (
     resume_markdown,
     resume_pack_markdown,
 )
-from phase1.parse import extract_upload, grounded_skills, normalize_career_start, propose_from_text
+from phase1.parse import (
+    extract_upload,
+    grounded_skills,
+    normalize_career_start,
+    propose_from_text,
+    split_optional_lines,
+)
 from phase1.mailer import qualified_digest, reset_message, send_mail, smtp_ready
 from phase1.pack_files import markdown_to_docx
 from phase1.plans import ORDER, PLANS, get_plan, money, pack_budget
@@ -469,20 +476,33 @@ def create_app(test_config: dict | None = None) -> Flask:
                 draft["name"] = request.form["name"].strip()
             if request.form.get("email"):
                 draft["email"] = request.form["email"].strip()
-            if request.form.get("location"):
-                draft["location"] = request.form["location"].strip()
+            draft["phone"] = (request.form.get("phone") or "").strip()
+            if "profile" in request.form:
+                draft["summary"] = (request.form.get("profile") or "").strip()
             if request.form.get("career_start"):
                 start = normalize_career_start(request.form["career_start"].strip(), fallback="")
                 if not start:
                     flash("Career start must be a date like 2023-02-01.")
-                    return render_template("confirm.html", draft=draft), 400
+                    return render_template(
+                        "confirm.html",
+                        draft=draft,
+                        auth_location=auth_location_display(draft),
+                    ), 400
                 draft["career_start"] = start
-            if request.form.get("work_authorization"):
-                draft["work_authorization"] = [
-                    a.strip() for a in request.form["work_authorization"].split(",") if a.strip()
-                ]
+            auth_raw = (request.form.get("work_authorization") or "").strip()
+            countries, loc = split_auth_location(auth_raw)
+            if countries:
+                draft["work_authorization"] = countries
+            elif auth_raw:
+                draft["work_authorization"] = [auth_raw]
+            else:
+                draft["work_authorization"] = []
+            if loc:
+                draft["location"] = loc
             if request.form.get("skills"):
                 draft["skills"] = [s.strip() for s in request.form["skills"].split(",") if s.strip()]
+            draft["education"] = split_optional_lines(request.form.get("education") or "")
+            draft["certifications"] = split_optional_lines(request.form.get("certifications") or "")
             bullets = []
             for role in draft.get("experience") or []:
                 bullets.extend(role.get("bullets") or [])
@@ -492,7 +512,11 @@ def create_app(test_config: dict | None = None) -> Flask:
                 profile_from_dict(draft)
             except (KeyError, TypeError, ValueError):
                 flash("That profile could not be saved. Check the dates and try again.")
-                return render_template("confirm.html", draft=draft), 400
+                return render_template(
+                    "confirm.html",
+                    draft=draft,
+                    auth_location=auth_location_display(draft),
+                ), 400
             save_profile(db(), session["user_id"], draft, raw_text)
             clear_draft(db(), session["user_id"])
             flash(
@@ -503,7 +527,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             if n:
                 flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
             return redirect(url_for("jobs"))
-        return render_template("confirm.html", draft=draft)
+        return render_template(
+            "confirm.html",
+            draft=draft,
+            auth_location=auth_location_display(draft),
+        )
 
     @app.get("/jobs")
     @login_required
