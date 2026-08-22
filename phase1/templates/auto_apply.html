@@ -5,7 +5,7 @@
 <p>Pick a path per job. Both stay honest:</p>
 <ul>
   <li><strong>Apply directly</strong> — official vacancy on the verified <a href="{{ url_for('boards') }}">boards</a>, or the employer. You submit there.</li>
-  <li><strong>Auto-apply</strong> — tick jobs that already pass the gate. We generate a true pack, then you open each official apply page with that pack. Provtara does not log into an ATS and does not click Submit. We never invent skills to make a listing fit. Max 10 jobs per run.</li>
+  <li><strong>Auto-apply</strong> — tick jobs that already pass the gate. We generate a true pack, then you open each official apply page with that pack. Provtara does not log into an ATS and does not click Submit. We never invent skills to make a listing fit. Max {{ current_plan.auto_batch }} jobs per run on {{ current_plan.label }}.</li>
 </ul>
 <form id="auto" method="post" action="{{ url_for('auto_apply_run') }}"></form>
 <h2>Qualified — can auto-prepare</h2>

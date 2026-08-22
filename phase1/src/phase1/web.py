@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import secrets
 import threading
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from urllib.parse import quote
@@ -25,7 +26,7 @@ from phase0.pack import prepare_pack
 from phase0.qualify import load_profile, profile_from_dict, profile_to_dict, qualify
 from phase1.catalog import all_jobs, get_job
 from phase1.ingest import BOARD_HOMES, SOURCES, fetch_free_boards, job_source
-from phase1.markets import ECOSYSTEMS, MARKETS, WORK_MODES, filter_jobs, market_label, work_mode
+from phase1.markets import ECOSYSTEMS, MARKETS, WORK_MODES, filter_jobs, market_id, market_label, work_mode
 from phase1.templates_catalog import (
     example_letter,
     example_resume,
@@ -37,11 +38,17 @@ from phase1.templates_catalog import (
     resume_pack_markdown,
 )
 from phase1.parse import extract_upload, grounded_skills, propose_from_text
+from phase1.mailer import qualified_digest, send_mail, smtp_ready
+from phase1.pack_files import markdown_to_docx
+from phase1.plans import ORDER, PLANS, get_plan, money
 from phase1.store import (
+    alert_already_sent,
+    alert_users,
     apply_status,
     create_user,
     get_pack,
     get_profile,
+    get_user,
     hidden_ids,
     hide_job,
     init_db,
@@ -49,10 +56,14 @@ from phase1.store import (
     listing_count,
     load_listings,
     log_apply,
+    mark_alert_sent,
+    packs_this_month,
     refresh_is_stale,
     save_listings,
     save_pack,
     save_profile,
+    set_alerts,
+    set_plan_request,
     verify_user,
 )
 
@@ -148,7 +159,75 @@ def create_app(test_config: dict | None = None) -> Flask:
             "active_region": request.args.get("region") or "",
             "active_mode": request.args.get("mode") or "",
             "active_ecosystem": request.args.get("ecosystem") or "",
+            "current_plan": _current_plan(),
         }
+
+    def _current_plan():
+        uid = session.get("user_id")
+        if not uid:
+            return get_plan("free")
+        row = get_user(db(), uid)
+        return get_plan(row["plan"] if row else "free")
+
+    def _plan_for(uid: int) -> dict:
+        row = get_user(db(), uid)
+        return get_plan(row["plan"] if row else "free")
+
+    def _notify_user(uid: int) -> int:
+        if app.config.get("TESTING"):
+            return 0
+        row = get_user(db(), uid)
+        if row is None or not row["alerts_on"]:
+            return 0
+        data = get_profile(db(), uid)
+        if not data:
+            return 0
+        profile = profile_from_dict(data)
+        plan = get_plan(row["plan"])
+        kind = plan["alerts"]
+        last = row["last_alert_at"]
+        if last and kind != "fast":
+            try:
+                ts = datetime.fromisoformat(last)
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                hours = (datetime.now(timezone.utc) - ts).total_seconds() / 3600
+                if kind == "weekly3" and hours < 24 * 6:
+                    return 0
+                if kind in {"daily_ng", "pro"} and hours < 20:
+                    return 0
+            except ValueError:
+                pass
+        cap = 3 if kind == "weekly3" else 10
+        picked = []
+        for job in all_jobs(app.config["JOBS_DIR"], ingested_jobs()):
+            if alert_already_sent(db(), uid, job.id):
+                continue
+            if kind == "daily_ng" and market_id(job) != "ng":
+                continue
+            if not qualify(profile, job).passed:
+                continue
+            picked.append({"job": job})
+            if len(picked) >= cap:
+                break
+        if not picked:
+            return 0
+        origin = (request.url_root or "https://provtara.onrender.com").rstrip("/")
+        subject, body = qualified_digest(row["email"], picked, origin)
+        sent = send_mail(row["email"], subject, body) if smtp_ready() else False
+        for item in picked:
+            mark_alert_sent(db(), uid, item["job"].id)
+        return len(picked) if sent or True else 0
+
+    def _pack_allowed(uid: int) -> str | None:
+        plan = _plan_for(uid)
+        used = packs_this_month(db(), uid)
+        if used >= plan["packs_month"]:
+            return (
+                f"{plan['label']} includes {plan['packs_month']} packs this month. "
+                "See Pricing to change plan. The gate still will not invent skills."
+            )
+        return None
 
     def ingested_jobs():
         return load_listings(db())
@@ -200,12 +279,20 @@ def create_app(test_config: dict | None = None) -> Flask:
                 flash("Email and a password of at least 8 characters are required.")
                 return render_template("register.html"), 400
             try:
-                uid = create_user(db(), email, password)
+                uid = create_user(
+                    db(),
+                    email,
+                    password,
+                    alerts_on=request.form.get("alerts") == "on",
+                    currency=request.form.get("currency") or "usd",
+                )
             except Exception:
                 flash("That email is already registered.")
                 return render_template("register.html"), 400
             session["user_id"] = uid
             session["email"] = email.lower()
+            if request.form.get("alerts") == "on":
+                flash("Job alerts are on. After you confirm a résumé, we email roles that pass the gate.")
             return redirect(url_for("upload"))
         return render_template("register.html")
 
@@ -287,6 +374,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             save_profile(db(), session["user_id"], draft, session.get("raw_text") or "")
             session.pop("draft", None)
             flash("Profile confirmed. Skills without a bullet were struck.")
+            n = _notify_user(session["user_id"])
+            if n:
+                flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
             return redirect(url_for("jobs"))
         return render_template("confirm.html", draft=draft)
 
@@ -443,6 +533,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             return redirect(safe_next(url_for("vacancies")))
         _n, _errors, msg = pull_boards()
         flash(msg)
+        if not app.config.get("TESTING"):
+            for u in alert_users(db()):
+                _notify_user(u["id"])
         return redirect(safe_next(url_for("vacancies")))
 
     @app.get("/auto-apply")
@@ -479,7 +572,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         profile = current_profile()
         if profile is None:
             return redirect(url_for("upload"))
-        selected = request.form.getlist("job_id")[:10]
+        selected = request.form.getlist("job_id")
+        blocked = _pack_allowed(session["user_id"])
+        if blocked:
+            flash(blocked)
+            return redirect(url_for("auto_apply"))
+        batch = _plan_for(session["user_id"])["auto_batch"]
         prepared = 0
         skipped = 0
         for job_id in selected:
@@ -510,6 +608,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
             log_apply(db(), session["user_id"], job.id, "prepared")
             prepared += 1
+            if prepared >= batch:
+                break
         flash(
             f"Auto-apply prepared {prepared} pack(s). "
             f"Skipped {skipped} (failed gate or truth check). "
@@ -541,6 +641,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         job = get_job(app.config["JOBS_DIR"], job_id, ingested_jobs())
         if job is None:
             return "No such job", 404
+        blocked = _pack_allowed(session["user_id"])
+        if blocked:
+            flash(blocked)
+            return redirect(url_for("job_detail", job_id=job_id))
         exceptions = [e for e in request.form.getlist("exception") if e]
         try:
             pack = prepare_pack(profile, job, exception_for=exceptions or None)
@@ -597,5 +701,65 @@ def create_app(test_config: dict | None = None) -> Flask:
     @login_required
     def pack_gaps(job_id: str):
         return _pack_file(job_id, "gap_markdown", "gap_table.md", "text/markdown")
+
+    @app.get("/packs/<job_id>/resume.docx")
+    @login_required
+    def pack_resume_docx(job_id: str):
+        if not _current_plan()["docx"]:
+            flash("Word download is on Basic and above. See Pricing.")
+            return redirect(url_for("pricing"))
+        row = get_pack(db(), session["user_id"], job_id)
+        if row is None:
+            return Response("No pack", status=404)
+        return Response(
+            markdown_to_docx(row["resume_text"]),
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={job_id}-resume.docx"},
+        )
+
+    @app.get("/pricing")
+    def pricing():
+        currency = (request.args.get("currency") or session.get("currency") or "usd").lower()
+        if currency not in {"usd", "ngn"}:
+            currency = "usd"
+        cards = []
+        for pid in ORDER:
+            plan = PLANS[pid]
+            month, year = money(plan, currency)
+            cards.append({**plan, "month": month, "year": year})
+        return render_template("pricing.html", cards=cards, currency=currency)
+
+    @app.route("/account", methods=["GET", "POST"])
+    @login_required
+    def account():
+        uid = session["user_id"]
+        if request.method == "POST":
+            set_alerts(db(), uid, request.form.get("alerts") == "on")
+            flash("Alert preference saved. We only mail jobs that pass your confirmed résumé.")
+            return redirect(url_for("account"))
+        row = get_user(db(), uid)
+        plan = get_plan(row["plan"] if row else "free")
+        return render_template(
+            "account.html",
+            user=row,
+            plan=plan,
+            packs_used=packs_this_month(db(), uid),
+            smtp=smtp_ready(),
+        )
+
+    @app.post("/billing/request")
+    @login_required
+    def billing_request():
+        plan = (request.form.get("plan") or "").lower()
+        currency = (request.form.get("currency") or "usd").lower()
+        if plan not in PLANS or plan == "free":
+            flash("Pick Basic, Pro, or Premium.")
+            return redirect(url_for("pricing"))
+        set_plan_request(db(), session["user_id"], plan, currency)
+        flash(
+            f"{PLANS[plan]['label']} requested in {currency.upper()}. "
+            "Card billing is not live on this workshop yet — you stay on Free limits until Paystack/Stripe is wired."
+        )
+        return redirect(url_for("account"))
 
     return app

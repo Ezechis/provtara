@@ -52,6 +52,18 @@ def test_landing_states_the_promise(client):
         assert name not in home
 
 
+def test_pricing_page_lists_naira_and_dollars(client):
+    r = client.get("/pricing?currency=ngn")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True).replace(",", "")
+    assert "5000" in body
+    assert "Basic" in r.get_data(as_text=True)
+    assert "Premium" in r.get_data(as_text=True)
+    usd = client.get("/pricing?currency=usd").get_data(as_text=True)
+    assert "$9" in usd
+    assert "$19" in usd
+
+
 def test_register_required_before_upload(client):
     r = client.get("/upload", follow_redirects=False)
     assert r.status_code in (302, 303)
@@ -110,8 +122,12 @@ def test_boards_page_lists_verified_sources(client):
     assert "Arbeitnow" in body
     assert "RemoteOK" in body
     assert "Jobicy" in body
+    assert "Himalayas" in body
+    assert "We Work Remotely" in body
+    assert "Hacker News Jobs" in body
     assert "https://remotive.com" in body
     assert "https://remoteok.com" in body
+    assert "https://himalayas.app" in body
 
 
 def test_auto_apply_requires_login(client):

@@ -137,7 +137,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rail-web3:hover { background: #34276a; color: #fff; }
 .rail-web3.is-on { box-shadow: inset 0 -3px 0 #c4b5fd; }
 
-.rail-out { margin-top: auto; padding-top: 1.5rem; font-size: 0.8rem; color: var(--muted); }
+.rail-meta { font-size: 0.82rem; margin: 0 0 1rem; }
+.rail-meta a { color: var(--muted); }
+.rail-out { margin-top: auto; padding-top: 1.5rem; font-size: 0.8rem; color: var(--muted); display: grid; gap: 0.35rem; }
 .page { padding: 2rem 2.25rem 4rem; min-width: 0; }
 
 .tray {
@@ -250,6 +252,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   font-size: 0.9rem;
 }
 
+.pricing-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .pricing-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.pricing-card h2 { font-size: 1.6rem; }
+.pricing-pro { outline: 2px solid var(--nigeria); }
+.pricing-list { padding-left: 1.1rem; color: var(--muted); font-size: 0.92rem; }
 .account-row {
   display: flex;
   flex-wrap: wrap;

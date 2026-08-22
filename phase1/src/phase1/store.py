@@ -21,7 +21,12 @@ def init_db(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            plan TEXT NOT NULL DEFAULT 'free',
+            currency TEXT NOT NULL DEFAULT 'usd',
+            alerts_on INTEGER NOT NULL DEFAULT 1,
+            last_alert_at TEXT,
+            plan_requested TEXT
         );
         CREATE TABLE IF NOT EXISTS profiles (
             user_id INTEGER PRIMARY KEY,
@@ -59,19 +64,52 @@ def init_db(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             PRIMARY KEY (user_id, job_id)
         );
+        CREATE TABLE IF NOT EXISTS alerts_sent (
+            user_id INTEGER NOT NULL,
+            job_id TEXT NOT NULL,
+            sent_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, job_id)
+        );
         """
     )
+    _ensure_column(conn, "users", "plan", "TEXT NOT NULL DEFAULT 'free'")
+    _ensure_column(conn, "users", "currency", "TEXT NOT NULL DEFAULT 'usd'")
+    _ensure_column(conn, "users", "alerts_on", "INTEGER NOT NULL DEFAULT 1")
+    _ensure_column(conn, "users", "last_alert_at", "TEXT")
+    _ensure_column(conn, "users", "plan_requested", "TEXT")
     conn.commit()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, name: str, spec: str) -> None:
+    cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if name not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {spec}")
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def create_user(conn: sqlite3.Connection, email: str, password: str) -> int:
+def create_user(
+    conn: sqlite3.Connection,
+    email: str,
+    password: str,
+    *,
+    alerts_on: bool = True,
+    currency: str = "usd",
+) -> int:
     cur = conn.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
-        (email.lower().strip(), generate_password_hash(password), now()),
+        """
+        INSERT INTO users (email, password_hash, created_at, alerts_on, currency)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            email.lower().strip(),
+            generate_password_hash(password),
+            now(),
+            1 if alerts_on else 0,
+            "ngn" if currency.lower() == "ngn" else "usd",
+        ),
     )
     conn.commit()
     return int(cur.lastrowid)
@@ -253,3 +291,58 @@ def apply_status(conn: sqlite3.Connection, user_id: int) -> dict[str, str]:
         "SELECT job_id, status FROM apply_log WHERE user_id = ?", (user_id,)
     ).fetchall()
     return {r["job_id"]: r["status"] for r in rows}
+
+
+def get_user(conn: sqlite3.Connection, user_id: int):
+    return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+
+def set_alerts(conn: sqlite3.Connection, user_id: int, on: bool) -> None:
+    conn.execute("UPDATE users SET alerts_on = ? WHERE id = ?", (1 if on else 0, user_id))
+    conn.commit()
+
+
+def set_plan_request(conn: sqlite3.Connection, user_id: int, plan: str, currency: str) -> None:
+    conn.execute(
+        "UPDATE users SET plan_requested = ?, currency = ? WHERE id = ?",
+        (plan, currency, user_id),
+    )
+    conn.commit()
+
+
+def set_plan(conn: sqlite3.Connection, user_id: int, plan: str) -> None:
+    conn.execute("UPDATE users SET plan = ? WHERE id = ?", (plan, user_id))
+    conn.commit()
+
+
+def packs_this_month(conn: sqlite3.Connection, user_id: int) -> int:
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-01T00:00:00+00:00")
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM packs WHERE user_id = ? AND created_at >= ?",
+        (user_id, stamp),
+    ).fetchone()
+    return int(row["n"] if row else 0)
+
+
+def alert_users(conn: sqlite3.Connection):
+    return conn.execute(
+        "SELECT * FROM users WHERE alerts_on = 1"
+    ).fetchall()
+
+
+def mark_alert_sent(conn: sqlite3.Connection, user_id: int, job_id: str) -> None:
+    conn.execute(
+        "INSERT OR IGNORE INTO alerts_sent (user_id, job_id, sent_at) VALUES (?, ?, ?)",
+        (user_id, job_id, now()),
+    )
+    conn.execute("UPDATE users SET last_alert_at = ? WHERE id = ?", (now(), user_id))
+    conn.commit()
+
+
+def alert_already_sent(conn: sqlite3.Connection, user_id: int, job_id: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM alerts_sent WHERE user_id = ? AND job_id = ?",
+        (user_id, job_id),
+    ).fetchone()
+    return row is not None
+

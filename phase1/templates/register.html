@@ -2,11 +2,21 @@
 {% block title %}Register{% endblock %}
 {% block body %}
 <h1>Create an account</h1>
-<p>A résumé needs an owner. No guest uploads.</p>
+<p>A résumé needs an owner. No guest uploads. After you confirm a résumé we can email jobs that already pass the gate.</p>
 <form class="stack" method="post">
   <label>Email <input type="email" name="email" required></label>
   <label>Password (8+ characters) <input type="password" name="password" required minlength="8"></label>
+  <label>Prices you want to see
+    <select name="currency">
+      <option value="usd">US dollars</option>
+      <option value="ngn">Naira</option>
+    </select>
+  </label>
+  <label class="pick">
+    <input type="checkbox" name="alerts" value="on" checked>
+    Email me IT jobs I am qualified for, using this address, after I confirm my résumé.
+  </label>
   <button class="btn" type="submit">Create account</button>
 </form>
-<p class="muted">Already here? <a href="{{ url_for('login') }}">Log in</a></p>
+<p class="muted">Already here? <a href="{{ url_for('login') }}">Log in</a> · <a href="{{ url_for('pricing') }}">Pricing</a></p>
 {% endblock %}

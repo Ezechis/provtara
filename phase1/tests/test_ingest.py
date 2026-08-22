@@ -4,8 +4,9 @@ from phase1.ingest import BOARD_HOMES, BOARD_URLS, SOURCES, is_it_role, job_from
 from phase0.qualify import job_from_dict
 
 
-def test_four_verified_boards_are_wired():
-    assert set(SOURCES) == {"remotive", "arbeitnow", "remoteok", "jobicy"}
+def test_verified_boards_are_wired():
+    expected = {"remotive", "arbeitnow", "remoteok", "jobicy", "himalayas", "wwr", "hnjobs"}
+    assert set(SOURCES) == expected
     assert set(BOARD_URLS) == set(SOURCES) == set(BOARD_HOMES)
 
 

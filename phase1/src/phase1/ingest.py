@@ -5,6 +5,7 @@ import json
 import re
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import unescape
 
@@ -201,11 +202,79 @@ def job_from_jobicy(item: dict) -> Job | None:
     )
 
 
+def job_from_himalayas(item: dict) -> Job | None:
+    locs = item.get("locationRestrictions") or []
+    names = []
+    for loc in locs if isinstance(locs, list) else []:
+        if isinstance(loc, dict):
+            names.append(loc.get("name") or loc.get("alpha2") or "")
+        elif isinstance(loc, str):
+            names.append(loc)
+    location = ", ".join(n for n in names if n) or "Worldwide"
+    return _job(
+        source="himalayas",
+        title=item.get("title") or "",
+        company=item.get("companyName") or item.get("company") or "",
+        url=item.get("applicationLink") or item.get("guid") or "",
+        description=item.get("description") or item.get("excerpt") or "",
+        location=location,
+        remote=True,
+    )
+
+
+def _rss_items(raw: bytes) -> list[dict]:
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError:
+        return []
+    out = []
+    for item in root.iter("item"):
+        out.append(
+            {
+                "title": (item.findtext("title") or "").strip(),
+                "url": (item.findtext("link") or "").strip(),
+                "description": (item.findtext("description") or "").strip(),
+            }
+        )
+    return out
+
+
+def job_from_wwr(item: dict) -> Job | None:
+    title = item.get("title") or ""
+    company = "Company"
+    if ": " in title:
+        company, title = title.split(": ", 1)
+    return _job(
+        source="wwr",
+        title=title.strip(),
+        company=company.strip(),
+        url=item.get("url") or "",
+        description=item.get("description") or "",
+        location="Remote",
+        remote=True,
+    )
+
+
+def job_from_hnjobs(item: dict) -> Job | None:
+    return _job(
+        source="hnjobs",
+        title=item.get("title") or "",
+        company=(item.get("title") or "Hiring company").split(" is hiring")[0][:80],
+        url=item.get("url") or "",
+        description=item.get("description") or item.get("title") or "",
+        location="Remote",
+        remote=True,
+    )
+
+
 SOURCES = {
     "remotive": "Remotive",
     "arbeitnow": "Arbeitnow",
     "remoteok": "RemoteOK",
     "jobicy": "Jobicy",
+    "himalayas": "Himalayas",
+    "wwr": "We Work Remotely",
+    "hnjobs": "Hacker News Jobs",
 }
 
 BOARD_HOMES = {
@@ -213,6 +282,9 @@ BOARD_HOMES = {
     "arbeitnow": "https://www.arbeitnow.com",
     "remoteok": "https://remoteok.com",
     "jobicy": "https://jobicy.com",
+    "himalayas": "https://himalayas.app",
+    "wwr": "https://weworkremotely.com",
+    "hnjobs": "https://news.ycombinator.com/jobs",
 }
 
 
@@ -238,15 +310,26 @@ BOARD_URLS = {
     "arbeitnow": "https://www.arbeitnow.com/api/job-board-api",
     "remoteok": "https://remoteok.com/api",
     "jobicy": "https://jobicy.com/api/v2/remote-jobs?count=50&tag=software",
+    "himalayas": "https://himalayas.app/jobs/api?limit=20",
+    "wwr": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+    "hnjobs": "https://hnrss.org/jobs",
 }
+RSS_BOARDS = {"wwr", "hnjobs"}
 PER_BOARD_CAP = 40
 FETCH_TIMEOUT = 12
 
 
-def _get_json(url: str) -> object:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+def _get_bytes(url: str) -> bytes:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": UA, "Accept": "application/json, application/rss+xml, text/xml, */*"},
+    )
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
-        return json.loads(resp.read().decode("utf-8", "replace"))
+        return resp.read()
+
+
+def _get_json(url: str) -> object:
+    return json.loads(_get_bytes(url).decode("utf-8", "replace"))
 
 
 def _extract_remotive(payload):
@@ -269,20 +352,31 @@ def _extract_jobicy(payload):
     return [job_from_jobicy(x) for x in items]
 
 
+def _extract_himalayas(payload):
+    items = payload.get("jobs", payload.get("data", payload)) if isinstance(payload, dict) else payload
+    return [job_from_himalayas(x) for x in items or [] if isinstance(x, dict)]
+
+
 _EXTRACTORS = {
     "remotive": _extract_remotive,
     "arbeitnow": _extract_arbeitnow,
     "remoteok": _extract_remoteok,
     "jobicy": _extract_jobicy,
+    "himalayas": _extract_himalayas,
 }
 
 
 def _fetch_one(name: str, url: str) -> tuple[str, list[Job], str | None]:
     try:
+        if name in RSS_BOARDS:
+            items = _rss_items(_get_bytes(url))
+            mapper = job_from_wwr if name == "wwr" else job_from_hnjobs
+            batch = [j for j in (mapper(x) for x in items) if j is not None][:PER_BOARD_CAP]
+            return name, batch, None
         payload = _get_json(url)
         batch = [j for j in _EXTRACTORS[name](payload) if j is not None][:PER_BOARD_CAP]
         return name, batch, None
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, TypeError, ValueError, ET.ParseError) as exc:
         return name, [], str(exc)[:200]
 
 
@@ -290,7 +384,7 @@ def fetch_free_boards() -> tuple[list[Job], dict[str, str]]:
     """Pull IT jobs from no-key public boards in parallel. Errors are per-source."""
     jobs: list[Job] = []
     errors: dict[str, str] = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=7) as pool:
         futs = [pool.submit(_fetch_one, name, url) for name, url in BOARD_URLS.items()]
         for fut in as_completed(futs):
             name, batch, err = fut.result()

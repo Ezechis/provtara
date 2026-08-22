@@ -44,8 +44,10 @@ def test_example_resume_is_a_person_not_brackets():
     role = get_role("backend-engineer")
     text = example_resume(role)
     assert "[Your name]" not in text
-    assert "Paystack" in text or "Interswitch" in text
+    assert "Paystack" in text
+    assert "idempotency" in text.lower() or "charge" in text.lower()
     assert "Backend Engineer" in text
+    assert "Own the live path" not in text
     letter = example_letter(role)
     assert letter.startswith("Dear hiring team")
     assert "I will submit this pack myself" in letter

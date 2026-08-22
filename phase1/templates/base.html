@@ -18,6 +18,7 @@
         <a href="{{ url_for('auto_apply') }}">Auto-Apply</a>
         <a href="{{ url_for('upload') }}">Upload Your Resume</a>
       </nav>
+      <p class="rail-meta"><a href="{{ url_for('pricing') }}">{{ current_plan.label }} · Pricing</a></p>
       <nav class="rail-markets" aria-label="Job markets">
         {% for m in markets %}
           <a
@@ -37,8 +38,11 @@
       {% if user_email %}
       <form class="rail-out" method="post" action="{{ url_for('logout') }}">
         <span>{{ user_email }}</span>
+        <a href="{{ url_for('account') }}">Account / alerts</a>
         <button type="submit" class="text-btn">Log out</button>
       </form>
+      {% else %}
+      <p class="rail-out"><a href="{{ url_for('login') }}">Log in</a> · <a href="{{ url_for('register') }}">Create account</a></p>
       {% endif %}
     </aside>
     <main class="page">

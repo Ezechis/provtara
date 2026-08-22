@@ -942,67 +942,51 @@ def _tool_list(role: RoleTemplate) -> list[str]:
 
 
 def example_resume(role: RoleTemplate) -> str:
+    from phase1.role_examples import story_for
+
     name, city, email, auth, school = _persona(role)
-    current, earlier = _shops(role)
-    tools = _tool_list(role)
-    t0, t1, t2 = (tools + ["Git", "Linux", "documentation"])[:3]
-    skill_line = ", ".join(tools[:8])
+    now, was, skills, now_b, was_b, _letter = story_for(role)
+    now_lines = "\n".join(f"- {b}" for b in now_b)
+    was_lines = "\n".join(f"- {b}" for b in was_b)
     return (
         f"{name}\n"
         f"{email} · {city}\n"
         f"Work authorization: {auth}\n"
         f"\n"
         f"SUMMARY\n"
-        f"{role.title} with nine years in production systems. "
-        f"I am hired for {role.focus}. "
-        f"Career start: 2016. Every tool below appears in a bullet.\n"
+        f"{role.title}. Career start 2016. Hired to do {role.focus}. "
+        f"Every tool below is in a bullet.\n"
         f"\n"
         f"SKILLS\n"
-        f"{skill_line}\n"
+        f"{skills}\n"
         f"\n"
         f"EXPERIENCE\n"
-        f"Senior {role.title}, {current[0]} ({current[2]} – {current[3]}) — {current[1]}\n"
-        f"- Own {role.focus} for a live service: {t0} in production, not a lab. "
-        f"On-call notes name the failure, then the fix.\n"
-        f"- Cut a recurring incident class by changing how we used {t1}; "
-        f"the next person ran the same playbook without asking me.\n"
-        f"- Shipped a change that depended on {t2}, with a rollback that we actually used once.\n"
-        f"- Review the work of two engineers on the same stack. I do not sign off a keyword with no system behind it.\n"
+        f"{now}\n"
+        f"{now_lines}\n"
         f"\n"
-        f"{role.title}, {earlier[0]} ({earlier[2]} – {earlier[3]}) — {earlier[1]}\n"
-        f"- Built and ran the {role.focus} path using {t0} and {t1}. "
-        f"When it broke at 2 a.m., I was the person who could recover it.\n"
-        f"- Wrote the internal guide for {t2} that new hires still open in week one.\n"
-        f"- Left the job with backups, access lists, and a successor who could deploy without me.\n"
+        f"{was}\n"
+        f"{was_lines}\n"
         f"\n"
         f"EDUCATION\n"
         f"B.Sc. Computer Science, {school}, 2016\n"
         f"\n"
-        f"This example is a measurement stick. Copy a line only if you can point at the system, the date, and the person who saw you do it.\n"
+        f"This example is a measurement stick, written in the shape of a real {role.title} CV. "
+        f"Copy a line only if you can point at the same kind of system, date, and witness.\n"
     )
 
 
 def example_letter(role: RoleTemplate) -> str:
+    from phase1.role_examples import story_for
+
     name, city, email, _auth, _school = _persona(role)
-    current, earlier = _shops(role)
-    tools = _tool_list(role)
-    t0, t1 = (tools + ["Git", "Linux"])[:2]
+    _now, _was, _skills, _nb, _wb, letter = story_for(role)
+    p1, p2 = letter
     return (
         f"Dear hiring team,\n"
         f"\n"
-        f"You are hiring a {role.title} whose job is {role.focus}. "
-        f"That is the work I have been paid to do since 2016, most recently at {current[0]} in {current[1]}.\n"
+        f"{p1}\n"
         f"\n"
-        f"At {current[0]} I own the live path, not a slide about it. "
-        f"I run {t0} in production. When we had a class of failures tied to {t1}, "
-        f"I changed the design, wrote the playbook, and stayed on the rotation until the next person could run it cold. "
-        f"That is the standard I will bring to your posting: a system I can name, a change I can date, and an outcome someone else can verify.\n"
-        f"\n"
-        f"Before that, at {earlier[0]}, I was the {role.title} who recovered the same class of work at 2 a.m. "
-        f"I do not list a tool I have not used on a system that billed real users. "
-        f"If your role requires something I have not run in production, I will say so in this letter and leave it off the résumé.\n"
-        f"\n"
-        f"I will submit this pack myself.\n"
+        f"{p2}\n"
         f"\n"
         f"{name}\n"
         f"{email} · {city}\n"

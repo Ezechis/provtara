@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Pricing — Provtara{% endblock %}
+{% block body %}
+<h1>Plans</h1>
+<p class="lede">Money buys volume. It never buys a fake skill. Gap table, firewall, and you-click-Submit stay on every plan.</p>
+<p class="account-row">
+  <a class="btn {% if currency == 'usd' %}{% else %}secondary{% endif %}" href="{{ url_for('pricing', currency='usd') }}">US dollars</a>
+  <a class="btn {% if currency == 'ngn' %}{% else %}secondary{% endif %}" href="{{ url_for('pricing', currency='ngn') }}">Naira</a>
+</p>
+<div class="pricing-grid">
+  {% for p in cards %}
+    <article class="card pricing-card{% if p.id == 'pro' %} pricing-pro{% endif %}{% if current_plan.id == p.id %} is-on{% endif %}">
+      <p class="proof-mark">{{ p.label }}{% if current_plan.id == p.id %} · your plan{% endif %}</p>
+      <h2>{{ p.month }}<span class="muted"> / month</span></h2>
+      <p class="meta">{{ p.year }} / year (two months free)</p>
+      <p>{{ p.blurb }}</p>
+      <ul class="pricing-list">
+        <li>{{ p.profiles }} confirmed profile{{ 's' if p.profiles != 1 else '' }}</li>
+        <li>{{ p.packs_month }} packs / month</li>
+        <li>{{ p.auto_batch }} job{{ 's' if p.auto_batch != 1 else '' }} per Auto-apply sitting</li>
+        <li>{% if p.pdf %}Markdown, Word, PDF{% elif p.docx %}Markdown + Word{% else %}Markdown only{% endif %}</li>
+        <li>{% if p.alerts == 'weekly3' %}Weekly digest, up to 3 qualified jobs{% elif p.alerts == 'daily_ng' %}Nigerian qualified-job alerts{% elif p.alerts == 'pro' %}Nigeria + Web3 + extra market{% else %}Faster alerts, all followed markets{% endif %}</li>
+        <li>{% if p.stylist %}Optional rewrite when an API key exists{% else %}No LLM rewrite{% endif %}</li>
+      </ul>
+      {% if p.id == 'free' %}
+        <p class="actions"><a class="btn secondary" href="{{ url_for('register') }}">Start free</a></p>
+      {% elif user_email %}
+        <form method="post" action="{{ url_for('billing_request') }}">
+          <input type="hidden" name="plan" value="{{ p.id }}">
+          <input type="hidden" name="currency" value="{{ currency }}">
+          <button class="btn" type="submit">Request {{ p.label }}</button>
+        </form>
+      {% else %}
+        <p class="actions"><a class="btn" href="{{ url_for('register') }}">Create account</a></p>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>
+<p class="muted">Paystack (NGN) and Stripe (USD) are next. Until then a request is stored and Free limits still apply. Step 6 stays off until a key is set.</p>
+{% endblock %}
