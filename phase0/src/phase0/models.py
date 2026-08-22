@@ -33,6 +33,8 @@ class Profile:
     employers: tuple[str, ...]
     experience: tuple[Role, ...]
     summary: str
+    education: tuple[str, ...] = ()
+    phone: str = ""
     as_of: date = date(2026, 8, 20)
 
     @property

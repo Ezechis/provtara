@@ -111,6 +111,10 @@ def test_pack_download_has_no_kubernetes(client):
     text = dl.get_data(as_text=True)
     assert "Kubernetes" not in text
     assert "Django" in text
+    assert "PROFESSIONAL SUMMARY" in text
+    assert "Harbor Ledger" in text
+    assert "SKILLS ALIGNED TO THIS ROLE" in text
+    assert "NimbusPay" in text
 
 
 def test_vacancies_are_public(client):

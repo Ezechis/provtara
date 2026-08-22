@@ -10,10 +10,13 @@
   <label>Career start <input name="career_start" value="{{ draft.career_start }}"></label>
   <label>Work authorization (comma) <input name="work_authorization" value="{{ (draft.work_authorization or []) | join(', ') }}"></label>
   <label>Skills (comma) <input name="skills" value="{{ (draft.skills or []) | join(', ') }}"></label>
+  {% if draft.education %}
+  <p class="muted">Education we read: {{ draft.education | join(' · ') }}</p>
+  {% endif %}
   <input type="hidden" name="confirm" value="1">
   <p class="actions"><button class="btn" type="submit">Confirm — show matching jobs</button></p>
 </form>
-<h2>Bullets we will use as evidence</h2>
+<h2>Experience we will tailor from</h2>
 {% if not draft.experience %}
 <p class="muted">No evidenced bullets yet. Add tools you actually used into the skills line only if a bullet below names them — or go back and paste a longer résumé.</p>
 <p><a href="{{ url_for('upload') }}">Upload again</a></p>

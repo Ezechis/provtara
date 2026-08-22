@@ -40,6 +40,44 @@ def test_propose_guesses_ng_auth_from_lagos_not_by_default():
     assert remote["work_authorization"] == []
 
 
+def test_propose_keeps_real_roles_education_and_untagged_bullets():
+    text = """
+Chioma Okeke
+chioma@example.com
+Lagos, Nigeria
++234 801 234 5678
+
+SUMMARY
+Backend engineer shipping payments APIs in production.
+
+EXPERIENCE
+Backend Engineer, Paystack, Jan 2024 – Present
+- Designed Django REST APIs for checkout, backed by PostgreSQL
+- Cut reconciliation time by rewriting the nightly batch as an idempotent worker
+Software Engineer, Andela, Feb 2023 – Dec 2023
+- Shipped internal admin tools and Git-based release notes
+
+EDUCATION
+B.Sc Computer Science, University of Lagos, 2022
+
+SKILLS
+Python, Django, PostgreSQL, Docker, Kubernetes
+"""
+    draft = propose_from_text(text)
+    titles = [r["title"] for r in draft["experience"]]
+    employers = [r["employer"] for r in draft["experience"]]
+    assert "Backend Engineer" in titles
+    assert "Paystack" in employers
+    assert "Andela" in employers
+    assert any("reconciliation" in b["text"] for r in draft["experience"] for b in r["bullets"])
+    assert any("University of Lagos" in row for row in draft["education"])
+    assert "+234" in draft["phone"]
+    skills = {s.lower() for s in draft["skills"]}
+    assert "django" in skills
+    assert "kubernetes" not in skills
+    assert "payments APIs" in draft["summary"]
+
+
 def test_grounded_skills_drop_unevidenced_tokens():
     bullets = [
         {"text": "Shipped Django APIs on PostgreSQL.", "tags": ["Django", "PostgreSQL"]},

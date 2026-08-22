@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Pack — {{ job.title }}{% endblock %}
 {% block body %}
-<h1>Your pack</h1>
-<p>This pack is only what you evidenced. Download it, continue the application for this job, attach the files, and press Submit on their form. Do not add tools that are not in this résumé.</p>
-<p class="meta">{{ job.title }} at {{ job.company }}</p>
+<h1>Application pack — {{ job.title }}, {{ job.company }}</h1>
+<p>This is a job-specific edition of your confirmed résumé: matching tools and bullets are led first. Nothing was added that you did not evidence. Download it, continue the application, attach the files, and press Submit on their form.</p>
+<p class="meta">Tailored for this vacancy · {{ job.title }} at {{ job.company }}</p>
 <div class="actions">
   <form method="post" action="{{ url_for('auto_apply_opened', job_id=job.id) }}">
     <button class="btn" type="submit">Continue this application</button>

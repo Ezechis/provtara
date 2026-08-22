@@ -52,6 +52,8 @@ def profile_from_dict(data: dict) -> Profile:
         employers=tuple(data.get("employers") or []),
         experience=tuple(roles),
         summary=data.get("summary") or "",
+        education=tuple(data.get("education") or []),
+        phone=data.get("phone") or "",
     )
 
 
@@ -66,6 +68,8 @@ def profile_to_dict(profile: Profile) -> dict:
         "skills": list(profile.skills),
         "employers": list(profile.employers),
         "summary": profile.summary,
+        "education": list(profile.education),
+        "phone": profile.phone,
         "experience": [
             {
                 "id": role.id,
