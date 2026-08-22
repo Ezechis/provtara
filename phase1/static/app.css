@@ -317,6 +317,28 @@ input, textarea {
   background: #f7faf8;
 }
 input[type="checkbox"], input[type="radio"] { width: auto; }
+.secret-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.secret-row input { flex: 1; min-width: 0; }
+.secret-toggle {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  min-height: 2.75rem;
+}
+.secret-toggle[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
 textarea { min-height: 12rem; }
 .pick { display: flex; gap: 0.5rem; align-items: flex-start; color: inherit; }
 .pick input { margin-top: 0.35rem; }

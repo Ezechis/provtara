@@ -23,6 +23,30 @@ def _skills_in(text: str) -> list[str]:
     return found
 
 
+def normalize_career_start(raw: str, fallback: str = "2023-01-01") -> str:
+    value = (raw or "").strip()
+    if re.fullmatch(r"\d{4}", value):
+        value = f"{value}-01-01"
+    elif re.fullmatch(r"\d{4}-\d{2}", value):
+        value = f"{value}-01"
+    try:
+        parsed = date.fromisoformat(value[:10])
+    except ValueError:
+        return fallback
+    this_year = date.today().year
+    if parsed.year < 1990 or parsed.year > this_year:
+        return fallback
+    return parsed.isoformat()
+
+
+def guess_work_authorization(text: str) -> list[str]:
+    blob = (text or "").lower()
+    found: list[str] = []
+    if any(k in blob for k in ("nigeria", "lagos", "abuja", "port harcourt", "naija")):
+        found.append("NG")
+    return found
+
+
 def grounded_skills(listed: list[str], bullets: list[dict]) -> list[str]:
     from phase0.models import canon
 
@@ -98,32 +122,27 @@ def propose_from_text(text: str) -> dict:
         if "," in ln and "@" not in ln and ln != name:
             location = ln
             break
-    years = [int(y) for y in _YEAR.findall(text)]
-    career_start = f"{min(years)}-01-01" if years else "2023-01-01"
+    this_year = date.today().year
+    years = [int(y) for y in _YEAR.findall(text) if 1995 <= int(y) <= this_year]
+    career_start = normalize_career_start(f"{min(years)}-01-01" if years else "2023-01-01")
     skills = _skills_in(text)
     bullets = []
     for i, ln in enumerate(lines):
-        if len(ln) < 40:
+        if len(ln) < 20:
+            continue
+        if re.match(r"(?i)^(skills|technologies|tech stack|tools|competenc)\b", ln):
             continue
         tags = _skills_in(ln)
         if not tags:
             continue
         bullets.append({"id": f"u.{i}", "text": ln, "tags": tags})
-    if not bullets and skills:
-        bullets.append(
-            {
-                "id": "u.0",
-                "text": "Experience described in the uploaded résumé.",
-                "tags": skills[:6],
-            }
-        )
     employers = []
     return {
         "name": name[:80],
         "email": email,
         "location": location or "Not specified",
         "remote_ok": True,
-        "work_authorization": ["NG"],
+        "work_authorization": guess_work_authorization(text),
         "career_start": career_start,
         "skills": grounded_skills(skills, bullets),
         "employers": employers,

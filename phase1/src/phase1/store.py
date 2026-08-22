@@ -9,8 +9,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(str(path), timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 
@@ -70,6 +73,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             sent_at TEXT NOT NULL,
             PRIMARY KEY (user_id, job_id)
         );
+        CREATE TABLE IF NOT EXISTS drafts (
+            user_id INTEGER PRIMARY KEY,
+            json TEXT NOT NULL,
+            raw_text TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
         """
     )
     _ensure_column(conn, "users", "plan", "TEXT NOT NULL DEFAULT 'free'")
@@ -128,6 +138,38 @@ def verify_user(conn: sqlite3.Connection, email: str, password: str):
     if not check_password_hash(row["password_hash"], password):
         return None
     return row
+
+
+def save_draft(conn: sqlite3.Connection, user_id: int, data: dict, raw_text: str = "") -> None:
+    conn.execute(
+        """
+        INSERT INTO drafts (user_id, json, raw_text, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            json = excluded.json,
+            raw_text = excluded.raw_text,
+            updated_at = excluded.updated_at
+        """,
+        (user_id, json.dumps(data), raw_text, now()),
+    )
+    conn.commit()
+
+
+def get_draft(conn: sqlite3.Connection, user_id: int) -> tuple[dict, str] | None:
+    row = conn.execute(
+        "SELECT json, raw_text FROM drafts WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        return json.loads(row["json"]), row["raw_text"] or ""
+    except json.JSONDecodeError:
+        return None
+
+
+def clear_draft(conn: sqlite3.Connection, user_id: int) -> None:
+    conn.execute("DELETE FROM drafts WHERE user_id = ?", (user_id,))
+    conn.commit()
 
 
 def save_profile(conn: sqlite3.Connection, user_id: int, data: dict, raw_text: str = "") -> None:

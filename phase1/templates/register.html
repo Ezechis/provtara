@@ -5,7 +5,9 @@
 <p>A résumé needs an owner. No guest uploads. After you confirm a résumé we can email jobs that already pass the gate.</p>
 <form class="stack" method="post">
   <label>Email <input type="email" name="email" required></label>
-  <label>Password (8+ characters) <input type="password" name="password" required minlength="8"></label>
+  {% with pwd_label="Password (8+ characters)", pwd_minlength="8", pwd_autocomplete="new-password" %}
+    {% include "_password_field.html" %}
+  {% endwith %}
   <label>Prices you want to see
     <select name="currency">
       <option value="usd">US dollars</option>

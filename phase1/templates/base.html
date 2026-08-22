@@ -77,5 +77,18 @@
       </details>
     </aside>
   </div>
+  <script>
+    document.addEventListener("click", function (event) {
+      var btn = event.target.closest(".secret-toggle");
+      if (!btn) return;
+      var input = btn.parentElement && btn.parentElement.querySelector('input[name="password"]');
+      if (!input) return;
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      btn.textContent = show ? "Hide" : "Show";
+    });
+  </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from phase1.plans import pack_budget, get_plan
 from phase1.web import create_app
 
 PHASE0 = Path(__file__).resolve().parents[2] / "phase0"
@@ -62,6 +63,15 @@ def test_pricing_page_lists_naira_and_dollars(client):
     usd = client.get("/pricing?currency=usd").get_data(as_text=True)
     assert "$9" in usd
     assert "$19" in usd
+
+
+def test_pack_budget_never_exceeds_monthly_cap():
+    free = get_plan("free")
+    basic = get_plan("basic")
+    assert pack_budget(free, 0) == free["auto_batch"]
+    assert pack_budget(free, free["packs_month"]) == 0
+    assert pack_budget(basic, basic["packs_month"] - 2) == 2
+    assert pack_budget(basic, 0) == basic["auto_batch"]
 
 
 def test_register_required_before_upload(client):
@@ -185,6 +195,31 @@ def test_vacancies_bump_qualified_after_resume(client):
     assert "100 percent evidenced fit" in body
     assert body.index("Harbor Ledger") < body.index("Northpeak Cloud")
     assert "sorted by evidenced fit" in body.lower()
+
+
+def test_register_and_login_have_show_password(client):
+    for path in ("/register", "/login"):
+        body = client.get(path).get_data(as_text=True)
+        assert 'type="password"' in body
+        assert "secret-toggle" in body
+        assert "Show" in body
+
+
+def test_resume_draft_stays_out_of_the_session_cookie(client):
+    _register_and_login(client)
+    blob = (
+        "Jordan Hale\njordan.hale@example.com\nLagos, Nigeria\n"
+        + ("Built Django REST APIs on PostgreSQL with Docker and pytest.\n" * 80)
+    )
+    r = client.post("/upload", data={"resume_text": blob}, follow_redirects=True)
+    assert r.status_code == 200
+    assert "Confirm this reading" in r.get_data(as_text=True)
+    with client.session_transaction() as sess:
+        assert "draft" not in sess
+        assert "raw_text" not in sess
+    confirmed = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
+    assert confirmed.status_code == 200
+    assert "Jobs you can honestly do" in confirmed.get_data(as_text=True)
 
 
 def test_cannot_pack_failed_gate(client):

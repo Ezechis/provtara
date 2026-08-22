@@ -74,6 +74,12 @@ def get_plan(plan_id: str | None) -> dict:
     return PLANS.get((plan_id or "free").lower(), PLANS["free"])
 
 
+def pack_budget(plan: dict, used: int) -> int:
+    """How many packs this run may write. Never exceed the monthly cap."""
+    remain = max(0, int(plan["packs_month"]) - max(0, int(used)))
+    return min(int(plan["auto_batch"]), remain)
+
+
 def money(plan: dict, currency: str) -> tuple[str, str]:
     if (currency or "usd").lower() == "ngn":
         return f"₦{plan['ngn_month']:,}", f"₦{plan['ngn_year']:,}"

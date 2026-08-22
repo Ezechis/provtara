@@ -37,15 +37,17 @@ from phase1.templates_catalog import (
     resume_markdown,
     resume_pack_markdown,
 )
-from phase1.parse import extract_upload, grounded_skills, propose_from_text
+from phase1.parse import extract_upload, grounded_skills, normalize_career_start, propose_from_text
 from phase1.mailer import qualified_digest, send_mail, smtp_ready
 from phase1.pack_files import markdown_to_docx
-from phase1.plans import ORDER, PLANS, get_plan, money
+from phase1.plans import ORDER, PLANS, get_plan, money, pack_budget
 from phase1.store import (
     alert_already_sent,
     alert_users,
     apply_status,
+    clear_draft,
     create_user,
+    get_draft,
     get_pack,
     get_profile,
     get_user,
@@ -59,6 +61,7 @@ from phase1.store import (
     mark_alert_sent,
     packs_this_month,
     refresh_is_stale,
+    save_draft,
     save_listings,
     save_pack,
     save_profile,
@@ -93,6 +96,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         DATABASE=str(instance / "workshop.db"),
         JOBS_DIR=str(DEFAULT_JOBS),
         SAMPLE_PROFILE=str(SAMPLE_PROFILE),
+        MAX_CONTENT_LENGTH=4 * 1024 * 1024,
     )
     if not debug:
         app.config.update(
@@ -104,6 +108,11 @@ def create_app(test_config: dict | None = None) -> Flask:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     if test_config:
         app.config.update(test_config)
+
+    @app.errorhandler(413)
+    def too_large(_err):
+        flash("That file is too large. Use a résumé under 4 MB, or paste the text.")
+        return redirect(url_for("upload")), 413
 
     def db():
         if "db" not in g:
@@ -142,7 +151,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         data = get_profile(db(), uid)
         if not data:
             return None
-        return profile_from_dict(data)
+        try:
+            return profile_from_dict(data)
+        except (KeyError, TypeError, ValueError):
+            return None
 
     @app.context_processor
     def inject_rail():
@@ -223,7 +235,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def _pack_allowed(uid: int) -> str | None:
         plan = _plan_for(uid)
         used = packs_this_month(db(), uid)
-        if used >= plan["packs_month"]:
+        if pack_budget(plan, used) <= 0:
             return (
                 f"{plan['label']} includes {plan['packs_month']} packs this month. "
                 "See Pricing to change plan. The gate still will not invent skills."
@@ -292,6 +304,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 return render_template("register.html"), 400
             session["user_id"] = uid
             session["email"] = email.lower()
+            session["currency"] = "ngn" if (request.form.get("currency") or "").lower() == "ngn" else "usd"
             if request.form.get("alerts") == "on":
                 flash("Job alerts are on. After you confirm a résumé, we email roles that pass the gate.")
             return redirect(url_for("upload"))
@@ -306,6 +319,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 return render_template("login.html"), 401
             session["user_id"] = row["id"]
             session["email"] = row["email"]
+            session["currency"] = row["currency"] if row["currency"] in {"usd", "ngn"} else "usd"
             return redirect(safe_next(url_for("jobs")))
         return render_template("login.html")
 
@@ -333,8 +347,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             if not text:
                 flash("Upload a PDF or DOCX, or paste the résumé text.")
                 return render_template("upload.html"), 400
-            session["draft"] = propose_from_text(text)
-            session["raw_text"] = text
+            save_draft(db(), session["user_id"], propose_from_text(text), text)
             return redirect(url_for("confirm"))
         return render_template("upload.html")
 
@@ -342,16 +355,16 @@ def create_app(test_config: dict | None = None) -> Flask:
     @login_required
     def upload_sample():
         profile = load_profile(app.config["SAMPLE_PROFILE"])
-        session["draft"] = profile_to_dict(profile)
-        session["raw_text"] = "sample: Jordan Hale fixture"
+        save_draft(db(), session["user_id"], profile_to_dict(profile), "sample: Jordan Hale fixture")
         return redirect(url_for("confirm"))
 
     @app.route("/confirm", methods=["GET", "POST"])
     @login_required
     def confirm():
-        draft = session.get("draft")
-        if not draft:
+        stored = get_draft(db(), session["user_id"])
+        if not stored:
             return redirect(url_for("upload"))
+        draft, raw_text = stored
         if request.method == "POST":
             if request.form.get("name"):
                 draft["name"] = request.form["name"].strip()
@@ -360,7 +373,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             if request.form.get("location"):
                 draft["location"] = request.form["location"].strip()
             if request.form.get("career_start"):
-                draft["career_start"] = request.form["career_start"].strip()
+                start = normalize_career_start(request.form["career_start"].strip(), fallback="")
+                if not start:
+                    flash("Career start must be a date like 2023-02-01.")
+                    return render_template("confirm.html", draft=draft), 400
+                draft["career_start"] = start
             if request.form.get("work_authorization"):
                 draft["work_authorization"] = [
                     a.strip() for a in request.form["work_authorization"].split(",") if a.strip()
@@ -372,8 +389,13 @@ def create_app(test_config: dict | None = None) -> Flask:
                 bullets.extend(role.get("bullets") or [])
             listed = draft.get("skills") or []
             draft["skills"] = grounded_skills(listed, bullets)
-            save_profile(db(), session["user_id"], draft, session.get("raw_text") or "")
-            session.pop("draft", None)
+            try:
+                profile_from_dict(draft)
+            except (KeyError, TypeError, ValueError):
+                flash("That profile could not be saved. Check the dates and try again.")
+                return render_template("confirm.html", draft=draft), 400
+            save_profile(db(), session["user_id"], draft, raw_text)
+            clear_draft(db(), session["user_id"])
             flash(
                 "Profile confirmed. Skills without a bullet were struck. "
                 "Jobs that match your résumé are at the top, each with an evidenced fit percent."
@@ -606,7 +628,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         if blocked:
             flash(blocked)
             return redirect(url_for("auto_apply"))
-        batch = _plan_for(session["user_id"])["auto_batch"]
+        plan = _plan_for(session["user_id"])
+        batch = pack_budget(plan, packs_this_month(db(), session["user_id"]))
         prepared = 0
         skipped = 0
         for job_id in selected:
@@ -746,11 +769,24 @@ def create_app(test_config: dict | None = None) -> Flask:
             headers={"Content-Disposition": f"attachment; filename={job_id}-resume.docx"},
         )
 
+    def _currency() -> str:
+        q = (request.args.get("currency") or "").lower()
+        if q in {"usd", "ngn"}:
+            session["currency"] = q
+            return q
+        stored = session.get("currency")
+        if stored in {"usd", "ngn"}:
+            return stored
+        uid = session.get("user_id")
+        if uid:
+            row = get_user(db(), uid)
+            if row and row["currency"] in {"usd", "ngn"}:
+                return row["currency"]
+        return "usd"
+
     @app.get("/pricing")
     def pricing():
-        currency = (request.args.get("currency") or session.get("currency") or "usd").lower()
-        if currency not in {"usd", "ngn"}:
-            currency = "usd"
+        currency = _currency()
         cards = []
         for pid in ORDER:
             plan = PLANS[pid]
