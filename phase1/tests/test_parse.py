@@ -81,6 +81,40 @@ Python, Django, PostgreSQL, Docker, Kubernetes
     assert "payments APIs" in draft["summary"]
 
 
+def test_profile_skills_education_not_muddled_into_location():
+    text = """
+Ezechi Kingsley
+ezechi@example.com
++234 803 111 2222
+Results-driven IT professional, with eight years delivering network and cloud solutions for banks.
+
+WORK EXPERIENCE
+Network Engineer, MainOne, Jan 2020 – Present
+- Designed Django REST APIs on PostgreSQL for the ops portal
+
+EDUCATIONAL QUALIFICATIONS
+B.Sc Computer Science, University of Lagos, 2014
+HND Electrical Engineering, Yaba College of Technology, 2011
+
+CORE COMPETENCIES
+Python, Django, PostgreSQL, Networking, Cisco, Cloud
+"""
+    draft = propose_from_text(text)
+    assert "Results-driven" in (draft["summary"] or "")
+    assert "eight years" in (draft["summary"] or "").lower() or "Results-driven" in draft["summary"]
+    loc = (draft["location"] or "").lower()
+    assert "results-driven" not in loc
+    assert "Nigeria" in draft["work_authorization"]
+    skills = {s.lower() for s in draft["skills"]}
+    assert "python" in skills
+    assert "django" in skills
+    assert "cisco" in skills
+    assert "networking" in skills
+    edu = " ".join(draft["education"]).lower()
+    assert "university of lagos" in edu
+    assert "b.sc" in edu or "computer science" in edu
+
+
 def test_skills_section_fills_confirm_list():
     text = """Ada Okafor
 ada@example.com

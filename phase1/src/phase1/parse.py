@@ -16,11 +16,34 @@ _DATE_SPAN = re.compile(
     rf"(?P<b>present|current|now|(?:(?:{_MONTHS})\.?\s+)?(?:19|20)\d{{2}})",
     re.I,
 )
-_SECTION = re.compile(
-    r"^(experience|work (?:history|experience)|employment|professional experience|"
-    r"education|academic|skills|technical skills|technologies|tech stack|"
-    r"summary|profile|objective|projects|certifications)\s*:?$",
+_DEGREE = re.compile(
+    r"\b(?:b\.?\s*sc|b\.?\s*eng|b\.?\s*tech|b\.?\s*a\b|m\.?\s*sc|m\.?\s*eng|"
+    r"mba|m\.?ba|hnd|ond|\bnd\b|ph\.?d|bachelor|master'?s|diploma|"
+    r"ssce|waec|neco|\bnce\b|ll\.?b|ll\.?m)\b",
     re.I,
+)
+_HEAD_PATTERNS = (
+    (
+        "sum",
+        r"professional\s+summary|career\s+summary|personal\s+profile|"
+        r"career\s+objective|about\s+me|^summary$|^profile$|^objective$",
+    ),
+    (
+        "skills",
+        r"core\s+competenc|key\s+skills|professional\s+skills|technical\s+skills|"
+        r"areas?\s+of\s+expertise|tech(?:nical)?\s+stack|^skills$|^technologies$|^tools$",
+    ),
+    (
+        "edu",
+        r"educational\s+qualif|educational\s+background|education\s+and\s+training|"
+        r"academic\s+qualif|^education$|^academic$|^qualifications$",
+    ),
+    ("cert", r"certif|licen[cs]e"),
+    (
+        "exp",
+        r"work\s+(?:history|experience)|professional\s+experience|employment\s+history|"
+        r"^experience$|^employment$",
+    ),
 )
 _TITLE_HINT = re.compile(
     r"\b(engineer|developer|analyst|manager|administrator|designer|scientist|"
@@ -65,6 +88,7 @@ def _skills_in(text: str) -> list[str]:
 
 def _split_skill_tokens(blob: str) -> list[str]:
     blob = (blob or "").replace("•", ",").replace("|", ",").replace("·", ",").replace("/", ",")
+    blob = re.sub(r"\s{2,}", ",", blob)
     blob = re.sub(r"[()]", " ", blob)
     parts = re.split(r"[,;]+", blob)
     out: list[str] = []
@@ -125,9 +149,14 @@ def guess_work_authorization(text: str) -> list[str]:
 
     head = "\n".join((text or "").splitlines()[:12])
     labels, _loc = split_auth_location(head)
+    blob = head.lower()
+    digits = re.sub(r"\s+", "", head)
+    if "+234" in digits or re.search(r"(?<!\d)234\d{7,}", digits):
+        ng = country_label("NG")
+        if ng not in labels:
+            labels = [ng] + labels
     if labels:
         return labels
-    blob = head.lower()
     if any(k in blob for k in ("nigeria", "lagos", "abuja", "port harcourt", "naija")):
         return [country_label("NG")]
     return []
@@ -189,6 +218,62 @@ def extract_pdf(data: bytes) -> str:
     return text
 
 
+def _normalize_resume_text(text: str) -> str:
+    text = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(
+        r"(?i)(?<=\S)\s+(professional\s+summary|personal\s+profile|core\s+competenc\w*|"
+        r"educational\s+qualif\w*|key\s+skills|work\s+experience|"
+        r"education|experience|skills|certifications?)\b",
+        r"\n\1",
+        text,
+    )
+    return text
+
+
+def _kind_from_head(head: str) -> str | None:
+    compact = re.sub(r"\s+", " ", (head or "").strip().lower())
+    compact = compact.strip(":-– ")
+    for kind, pattern in _HEAD_PATTERNS:
+        if re.search(pattern, compact, re.I) or re.fullmatch(pattern, compact, re.I):
+            return kind
+    return None
+
+
+def _split_section_line(ln: str) -> tuple[str, str] | None:
+    raw = (ln or "").strip()
+    if not raw:
+        return None
+    kind = _kind_from_head(raw)
+    if kind:
+        return kind, ""
+    m = re.match(r"^(.{2,40}?)\s*[:\-–]\s*(.*)$", raw)
+    if m:
+        kind = _kind_from_head(m.group(1))
+        if kind:
+            return kind, m.group(2).strip()
+    m = re.match(r"^(.{3,40}?)\s{2,}(.*)$", raw)
+    if m:
+        kind = _kind_from_head(m.group(1))
+        if kind and kind != "exp":
+            return kind, m.group(2).strip()
+    parts = re.split(r"\s+", raw, maxsplit=3)
+    for take in (3, 2, 1):
+        if len(parts) <= take:
+            continue
+        head = " ".join(parts[:take])
+        rest = " ".join(parts[take:]).strip()
+        kind = _kind_from_head(head)
+        if kind and kind != "exp" and rest and not _looks_like_role_header(rest):
+            return kind, rest
+    return None
+
+
+def _looks_like_place_line(ln: str) -> bool:
+    from phase0.geo import looks_like_place
+
+    return looks_like_place(ln)
+
+
 def _looks_like_role_header(ln: str) -> bool:
     if len(ln) > 140:
         return False
@@ -246,17 +331,20 @@ def extract_upload(file_storage) -> str:
 
 
 def propose_from_text(text: str) -> dict:
+    text = _normalize_resume_text(text)
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     email_m = _EMAIL.search(text)
     email = email_m.group(0) if email_m else ""
     name = lines[0] if lines and "@" not in lines[0] else "Candidate"
     location = ""
-    for ln in lines[:10]:
+    for ln in lines[:12]:
         if ln == name or "@" in ln:
             continue
-        if _PHONE.fullmatch(re.sub(r"\s+", " ", ln)):
+        if _PHONE.search(ln) and len(ln) < 28:
             continue
-        if "," in ln and not _looks_like_role_header(ln):
+        if _split_section_line(ln):
+            break
+        if _looks_like_place_line(ln) and not _looks_like_role_header(ln):
             location = ln
             break
     phone = ""
@@ -286,28 +374,26 @@ def propose_from_text(text: str) -> dict:
         current = None
 
     for ln in lines:
-        if ln in {name, email, phone, location}:
+        if ln in {name, email, phone} or (location and ln == location):
             continue
         inline_skills = _INLINE_SKILLS.match(ln)
         if inline_skills:
             section_skills.extend(_split_skill_tokens(inline_skills.group(1)))
             continue
-        heading = _SECTION.match(ln)
-        if heading:
-            key = heading.group(1).lower()
+        split = _split_section_line(ln)
+        if split:
+            key, rest = split
             flush()
-            if key.startswith("edu") or key == "academic":
-                section = "edu"
-            elif "certif" in key:
-                section = "cert"
-            elif "skill" in key or "tech" in key:
-                section = "skills"
-            elif key in {"summary", "profile", "objective"}:
-                section = "sum"
-            elif "experience" in key or key == "employment":
-                section = "exp"
-            else:
-                section = key
+            section = key
+            if rest:
+                if section == "edu":
+                    education.append(rest)
+                elif section == "cert":
+                    certifications.append(_clean_bullet(rest))
+                elif section == "sum":
+                    summary_bits.append(_clean_bullet(rest))
+                elif section == "skills":
+                    section_skills.extend(_split_skill_tokens(rest))
             continue
         if section == "edu":
             if len(ln) > 8:
@@ -375,19 +461,41 @@ def propose_from_text(text: str) -> dict:
         emp = role.get("employer") or ""
         if emp and emp not in employers and emp.lower() not in {"employer", "from résumé", "from resume"}:
             employers.append(emp)
+    if not summary_bits:
+        for ln in lines[1:14]:
+            if ln in {name, email, phone, location}:
+                continue
+            if _EMAIL.search(ln) or (_PHONE.search(ln) and len(ln) < 28):
+                continue
+            if _looks_like_place_line(ln) or _looks_like_role_header(ln):
+                continue
+            if _split_section_line(ln):
+                break
+            if len(ln) >= 40:
+                summary_bits.append(ln)
+            if sum(len(x) for x in summary_bits) > 240:
+                break
+    if not education:
+        for ln in lines:
+            if _DEGREE.search(ln) and 10 < len(ln) < 160 and not _looks_like_role_header(ln):
+                if ln not in education:
+                    education.append(ln)
     summary = " ".join(summary_bits).strip()
     if not summary:
         for b in bullets[:2]:
             summary_bits.append(b["text"].rstrip("."))
         if summary_bits:
             summary = ". ".join(summary_bits) + "."
+    auth = guess_work_authorization(text)
+    if not location or location.lower() == "not specified":
+        location = auth[0] if auth else "Not specified"
     return {
         "name": name[:80],
         "email": email,
-        "location": location or "Not specified",
+        "location": location,
         "phone": phone,
         "remote_ok": True,
-        "work_authorization": guess_work_authorization(text),
+        "work_authorization": auth,
         "career_start": career_start,
         "skills": merge_skills(section_skills, catalog_skills, [t for b in bullets for t in (b.get("tags") or [])]),
         "employers": employers,

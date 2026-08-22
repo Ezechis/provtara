@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 LABELS = {
     "NG": "Nigeria",
     "KE": "Kenya",
@@ -162,6 +164,21 @@ def split_auth_location(text: str) -> tuple[list[str], str]:
     return labels, location
 
 
+def looks_like_place(value: str) -> bool:
+    text = (value or "").strip()
+    if not text or text.lower() in {"not specified"}:
+        return False
+    if len(text) > 70 or text.count(",") > 3 or len(text.split()) > 8:
+        return False
+    if re.search(
+        r"\b(university|college|polytechnic|institute|bachelor|master|diploma|hnd|b\.?\s*sc|m\.?\s*sc)\b",
+        text,
+        re.I,
+    ):
+        return False
+    return bool(country_code(text))
+
+
 def auth_location_display(draft: dict) -> str:
     loc = (draft.get("location") or "").strip()
     names = []
@@ -169,7 +186,7 @@ def auth_location_display(draft: dict) -> str:
         label = country_label(item)
         if label and label not in {"ANY"} and label not in names:
             names.append(label)
-    if loc:
+    if loc and looks_like_place(loc):
         loc_l = loc.lower()
         extra = [n for n in names if n.lower() not in loc_l]
         if extra:

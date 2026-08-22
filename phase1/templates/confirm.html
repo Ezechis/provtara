@@ -15,7 +15,7 @@
     <input name="work_authorization" value="{{ auth_location }}" placeholder="Nigeria, Kenya, United States…">
   </label>
   <label>Skills
-    <input name="skills" value="{{ (draft.skills or []) | join(', ') }}" placeholder="Taken from your résumé — edit if needed">
+    <textarea class="short" name="skills" placeholder="Taken from your résumé — edit if needed">{{ (draft.skills or []) | join(', ') }}</textarea>
   </label>
   <label>Educational qualifications <span class="muted">Not mandatory</span>
     <textarea class="short" name="education" placeholder="One per line. Leave blank if none.">{{ (draft.education or []) | join('\n') }}</textarea>

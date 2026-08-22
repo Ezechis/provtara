@@ -499,7 +499,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             if loc:
                 draft["location"] = loc
             if "skills" in request.form:
-                draft["skills"] = [s.strip() for s in request.form["skills"].split(",") if s.strip()]
+                raw_skills = (request.form.get("skills") or "").replace("\n", ",")
+                draft["skills"] = [s.strip() for s in raw_skills.split(",") if s.strip()]
             draft["education"] = split_optional_lines(request.form.get("education") or "")
             draft["certifications"] = split_optional_lines(request.form.get("certifications") or "")
             try:
