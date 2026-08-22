@@ -140,6 +140,14 @@ def verify_user(conn: sqlite3.Connection, email: str, password: str):
     return row
 
 
+def set_password(conn: sqlite3.Connection, user_id: int, password: str) -> None:
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (generate_password_hash(password), user_id),
+    )
+    conn.commit()
+
+
 def save_draft(conn: sqlite3.Connection, user_id: int, data: dict, raw_text: str = "") -> None:
     conn.execute(
         """

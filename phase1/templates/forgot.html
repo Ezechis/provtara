@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Forgot password{% endblock %}
+{% block body %}
+<h1>Forgot password</h1>
+<p>Enter the email you used to register. If we have an account for it, we send a one-hour link to create a new password.</p>
+<form class="stack" method="post">
+  <label>Email <input type="email" name="email" required autocomplete="email"></label>
+  <button class="btn" type="submit">Send reset link</button>
+</form>
+<p class="muted"><a href="{{ url_for('login') }}">Back to log in</a></p>
+{% endblock %}

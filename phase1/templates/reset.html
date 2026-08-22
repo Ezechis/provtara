@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}New password{% endblock %}
+{% block body %}
+<h1>Create a new password</h1>
+<p class="muted">Account: {{ email }}</p>
+<form class="stack" method="post">
+  {% with pwd_label="New password (8+ characters)", pwd_minlength="8", pwd_autocomplete="new-password", pwd_name="password" %}
+    {% include "_password_field.html" %}
+  {% endwith %}
+  {% with pwd_label="Type it again", pwd_minlength="8", pwd_autocomplete="new-password", pwd_name="password_confirm" %}
+    {% include "_password_field.html" %}
+  {% endwith %}
+  <button class="btn" type="submit">Save password</button>
+</form>
+{% endblock %}

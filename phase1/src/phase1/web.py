@@ -20,6 +20,7 @@ from flask import (
     session,
     url_for,
 )
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from phase0.models import GateFailed, TruthFailed
@@ -39,7 +40,7 @@ from phase1.templates_catalog import (
     resume_pack_markdown,
 )
 from phase1.parse import extract_upload, grounded_skills, normalize_career_start, propose_from_text
-from phase1.mailer import qualified_digest, send_mail, smtp_ready
+from phase1.mailer import qualified_digest, reset_message, send_mail, smtp_ready
 from phase1.pack_files import markdown_to_docx
 from phase1.plans import ORDER, PLANS, get_plan, money, pack_budget
 from phase1.store import (
@@ -52,6 +53,7 @@ from phase1.store import (
     get_pack,
     get_profile,
     get_user,
+    get_user_by_email,
     hidden_ids,
     hide_job,
     init_db,
@@ -67,6 +69,7 @@ from phase1.store import (
     save_pack,
     save_profile,
     set_alerts,
+    set_password,
     set_plan_request,
     verify_user,
 )
@@ -339,13 +342,75 @@ def create_app(test_config: dict | None = None) -> Flask:
         if request.method == "POST":
             row = verify_user(db(), request.form.get("email") or "", request.form.get("password") or "")
             if row is None:
-                flash("Email or password is wrong.")
+                flash("Email or password is wrong. If you forgot it, reset from the link below.")
                 return render_template("login.html"), 401
             session["user_id"] = row["id"]
             session["email"] = row["email"]
             session["currency"] = row["currency"] if row["currency"] in {"usd", "ngn"} else "usd"
             return redirect(safe_next(url_for("jobs")))
         return render_template("login.html")
+
+    def _origin() -> str:
+        return (request.url_root or "https://provtara.onrender.com").rstrip("/")
+
+    def _reset_serializer() -> URLSafeTimedSerializer:
+        return URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="provtara-password-reset")
+
+    def _make_reset_token(row) -> str:
+        return _reset_serializer().dumps({"u": row["id"], "p": row["password_hash"][:20]})
+
+    def _read_reset_token(token: str):
+        try:
+            data = _reset_serializer().loads(token, max_age=3600)
+        except (BadSignature, SignatureExpired):
+            return None
+        user = get_user(db(), data.get("u"))
+        if user is None:
+            return None
+        if user["password_hash"][:20] != data.get("p"):
+            return None
+        return user
+
+    @app.route("/forgot", methods=["GET", "POST"])
+    def forgot():
+        if request.method == "POST":
+            email = (request.form.get("email") or "").strip()
+            app.config["LAST_RESET_URL"] = None
+            row = get_user_by_email(db(), email) if email else None
+            if row is not None:
+                token = _make_reset_token(row)
+                reset_url = _origin() + url_for("reset_password", token=token)
+                subject, body = reset_message(row["email"], reset_url)
+                send_mail(row["email"], subject, body)
+                if app.config.get("TESTING"):
+                    app.config["LAST_RESET_URL"] = reset_url
+            return redirect(url_for("forgot_sent"))
+        return render_template("forgot.html")
+
+    @app.get("/forgot/sent")
+    def forgot_sent():
+        return render_template("forgot_sent.html", smtp=smtp_ready())
+
+    @app.route("/reset/<token>", methods=["GET", "POST"])
+    def reset_password(token: str):
+        user = _read_reset_token(token)
+        if user is None:
+            flash("That reset link is invalid or has expired. Request a new one.")
+            return redirect(url_for("forgot"))
+        if request.method == "POST":
+            password = request.form.get("password") or ""
+            confirm = request.form.get("password_confirm") or ""
+            if len(password) < 8:
+                flash("Use at least 8 characters.")
+                return render_template("reset.html", token=token, email=user["email"]), 400
+            if password != confirm:
+                flash("The two passwords did not match.")
+                return render_template("reset.html", token=token, email=user["email"]), 400
+            set_password(db(), user["id"], password)
+            session.clear()
+            flash("Password updated. Log in with the new one.")
+            return redirect(url_for("login"))
+        return render_template("reset.html", token=token, email=user["email"])
 
     @app.post("/logout")
     def logout():

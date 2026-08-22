@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Check your email{% endblock %}
+{% block body %}
+<h1>Check your email</h1>
+<p>If that address is registered, we sent a reset link. It expires in one hour. Use it to create a new password, then log in.</p>
+{% if not smtp %}
+<p class="muted">This workshop is not sending mail yet (no SMTP on the server), so the inbox will stay empty until mail is connected. Requesting a reset still does not tell anyone whether the address exists.</p>
+{% endif %}
+<p class="muted"><a href="{{ url_for('login') }}">Back to log in</a> · <a href="{{ url_for('forgot') }}">Try a different email</a></p>
+{% endblock %}

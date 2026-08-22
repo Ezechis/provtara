@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -221,6 +222,58 @@ def test_resume_draft_stays_out_of_the_session_cookie(client):
     confirmed = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
     assert confirmed.status_code == 200
     assert "Your matches" in confirmed.get_data(as_text=True)
+
+
+def test_login_page_links_to_forgot_password(client):
+    body = client.get("/login").get_data(as_text=True)
+    assert 'href="/forgot"' in body
+    assert "Forgot your password" in body
+
+
+def test_forgot_unknown_email_does_not_reveal_missing_account(client):
+    r = client.post("/forgot", data={"email": "nobody@example.com"}, follow_redirects=True)
+    assert r.status_code == 200
+    assert "If that address is registered" in r.get_data(as_text=True)
+    assert not client.application.config.get("LAST_RESET_URL")
+
+
+def test_forgot_password_email_path_sets_new_password(client):
+    _register_and_login(client)
+    client.post("/logout")
+    sent = client.post("/forgot", data={"email": "ada@example.com"}, follow_redirects=True)
+    assert sent.status_code == 200
+    assert "If that address is registered" in sent.get_data(as_text=True)
+    url = client.application.config.get("LAST_RESET_URL")
+    assert url
+    path = urlparse(url).path
+    form = client.get(path)
+    assert form.status_code == 200
+    assert "Create a new password" in form.get_data(as_text=True)
+    mismatch = client.post(
+        path,
+        data={"password": "new-password", "password_confirm": "other-one"},
+        follow_redirects=True,
+    )
+    assert "did not match" in mismatch.get_data(as_text=True)
+    saved = client.post(
+        path,
+        data={"password": "new-password", "password_confirm": "new-password"},
+        follow_redirects=True,
+    )
+    assert saved.status_code == 200
+    assert "Password updated" in saved.get_data(as_text=True)
+    assert client.get(path, follow_redirects=False).status_code in (302, 303)
+    old = client.post("/login", data={"email": "ada@example.com", "password": "correct-horse"})
+    assert old.status_code == 401
+    ok = client.post("/login", data={"email": "ada@example.com", "password": "new-password"})
+    assert ok.status_code in (302, 303)
+
+
+def test_bad_reset_token_asks_for_a_new_link(client):
+    r = client.get("/reset/not-a-real-token", follow_redirects=True)
+    assert r.status_code == 200
+    body = r.get_data(as_text=True).lower()
+    assert "invalid" in body or "expired" in body
 
 
 def test_stale_login_does_not_500_on_upload(client):

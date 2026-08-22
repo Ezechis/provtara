@@ -33,6 +33,16 @@ def send_mail(to_addr: str, subject: str, body: str) -> bool:
         return False
 
 
+def reset_message(email: str, reset_url: str) -> tuple[str, str]:
+    body = (
+        f"A password reset was requested for the Provtara account {email}.\n\n"
+        "Use this link to choose a new password. It expires in one hour:\n"
+        f"{reset_url}\n\n"
+        "If you did not ask for this, ignore the email. Your password stays the same.\n"
+    )
+    return "Provtara — reset your password", body
+
+
 def qualified_digest(email: str, rows: list[dict], origin: str) -> tuple[str, str]:
     lines = [
         "Provtara found IT jobs that pass your confirmed résumé.",
