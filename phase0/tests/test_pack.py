@@ -22,10 +22,11 @@ def test_harbor_pack_is_a_full_job_specific_resume():
     assert "NimbusPay" in resume
     assert "Coastline Labs" in resume
     assert "PROFESSIONAL SUMMARY" in resume
-    assert "SKILLS ALIGNED TO THIS ROLE" in resume
+    assert "SKILLS MATCHED TO THIS VACANCY" in resume
     assert resume.index("Django") < resume.index("Linux")
-    assert "Core for this vacancy" in resume
-    assert "Signature work" in resume
+    assert "Matched to this vacancy" in resume
+    assert "targeting" in resume.lower()
+    assert "Harbor Ledger" in resume
     assert "Every bullet is taken from" not in resume
     assert "I am applying for the Backend Engineer role at Harbor Ledger" in letter
     assert "auto-apply" not in letter.lower()

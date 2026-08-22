@@ -1,25 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Pack — {{ job.title }}{% endblock %}
+{% block title %}Tailored CV — {{ job.title }}{% endblock %}
 {% block body %}
-<h1>Application pack — {{ job.title }}, {{ job.company }}</h1>
-<p>This pack was prepared on Provtara for this vacancy. Download it, then open the employer form only when you are ready to attach the files and press Submit there.</p>
-<p class="meta">Tailored for this vacancy · {{ job.title }} at {{ job.company }}</p>
+<h1>Tailored CV for this vacancy</h1>
+<p class="cv-banner">Customized for <strong>{{ job.title }}</strong> at <strong>{{ job.company }}</strong> from your confirmed résumé. Nothing was invented.</p>
+{% if notes and notes.lead %}
+<p class="field-hint">Skills pulled to the top for this vacancy: {{ notes.lead | join(', ') }}.</p>
+{% endif %}
 <div class="actions">
-  <form method="post" action="{{ url_for('auto_apply_opened', job_id=job.id) }}">
-    <button class="btn secondary" type="submit">Open employer form</button>
-  </form>
-  <a class="btn secondary" href="{{ url_for('pack_resume', job_id=job.id) }}">Download résumé</a>
-  <a class="btn secondary" href="{{ url_for('pack_letter', job_id=job.id) }}">Download letter</a>
-  <a href="{{ url_for('pack_gaps', job_id=job.id) }}">Gap table</a>
+  <a class="btn" href="{{ url_for('pack_resume_pdf', job_id=job.id) }}">Download CV (PDF)</a>
+  <a class="btn" href="{{ url_for('pack_letter_pdf', job_id=job.id) }}">Download letter (PDF)</a>
+  <a class="btn secondary" href="{{ url_for('pack_resume_docx', job_id=job.id) }}">CV (Word)</a>
+  <a class="btn secondary" href="{{ url_for('pack_letter_docx', job_id=job.id) }}">Letter (Word)</a>
 </div>
+<p class="meta"><a href="{{ url_for('auto_apply') }}">← Auto-apply</a> · <a href="{{ url_for('pack_resume', job_id=job.id) }}">Markdown CV</a> · <a href="{{ url_for('pack_letter', job_id=job.id) }}">Markdown letter</a></p>
 <div class="pack">
   <div>
-    <h2>Résumé</h2>
-    <pre>{{ pack.resume_text }}</pre>
+    <h2>Résumé tailored to this job</h2>
+    <pre class="cv-body">{{ pack.resume_text }}</pre>
   </div>
   <div>
-    <h2>Cover letter</h2>
-    <pre>{{ pack.letter_text }}</pre>
+    <h2>Cover letter for {{ job.company }}</h2>
+    <pre class="cv-body">{{ pack.letter_text }}</pre>
   </div>
+</div>
+<div class="actions">
+  <form method="post" action="{{ url_for('auto_apply_opened', job_id=job.id) }}">
+    <button class="btn secondary" type="submit">Open employer form when you are ready to submit</button>
+  </form>
 </div>
 {% endblock %}

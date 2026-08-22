@@ -349,13 +349,16 @@ def _clean_bullet(ln: str) -> str:
 
 _SCHOOL = re.compile(
     r"university|polytechnic|college|secondary|high school|waec|neco|ssce|"
-    r"school certificate|senior school|\bnce\b|\bhnd\b|\bond\b|bachelor|master|"
-    r"doctorate|ph\.?d|b\.?\s*sc|m\.?\s*sc|ll\.?b",
+    r"school certificate|senior school|first school|fslc|jsce|"
+    r"\bnce\b|\bhnd\b|\bond\b|bachelor|master|doctorate|ph\.?d|"
+    r"b\.?\s*sc|b\.?\s*eng|b\.?\s*tech|m\.?\s*sc|ll\.?b|national diploma",
     re.I,
 )
 _PRO_CERT = re.compile(
     r"\b(ccna|ccnp|ccie|pmp|itil|aws|azure|gcp|comptia|ceh|cissp|prince2|"
-    r"scrum master|itil|microsoft certified|google certified|certified|"
+    r"scrum master|microsoft certified|google certified|oracle certified|"
+    r"nysc|coren|ican|acca|cfa|nebosh|mcsa|mcse|security\+|network\+|"
+    r"certificate in |professional certificate|certificate of |"
     r"certification)\b",
     re.I,
 )
@@ -365,16 +368,18 @@ def classify_credential(line: str) -> str | None:
     text = (line or "").strip()
     if not text:
         return None
+    if re.search(r"school certificate|senior school|waec|neco|ssce|first school|fslc", text, re.I):
+        return "edu"
     schoolish = bool(_DEGREE.search(text) or _SCHOOL.search(text))
     certish = bool(_PRO_CERT.search(text))
-    if schoolish and re.search(r"school certificate|senior school|waec|neco|ssce", text, re.I):
-        return "edu"
     if schoolish and not certish:
         return "edu"
     if certish and not schoolish:
         return "cert"
     if schoolish:
         return "edu"
+    if re.search(r"\bcertified\b", text, re.I):
+        return "cert"
     return None
 
 

@@ -26,6 +26,14 @@ def test_extract_docx_then_propose_django_not_k8s():
     assert "kubernetes" not in skills
 
 
+def test_markdown_to_pdf_is_a_pdf():
+    from phase1.pack_files import markdown_to_pdf
+
+    data = markdown_to_pdf("Ada Okafor\n\nPROFESSIONAL SUMMARY\nBackend engineer.\n")
+    assert data[:4] == b"%PDF"
+    assert b"Ada" in data or b"Okafor" in data or len(data) > 200
+
+
 def test_extract_pdf_contains_python():
     raw = (
         b"%PDF-1.4\n1 0 obj<<>>endobj\n"

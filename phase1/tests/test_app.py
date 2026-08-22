@@ -203,7 +203,13 @@ def test_pack_download_has_no_kubernetes(client):
     assert "Django" in text
     assert "PROFESSIONAL SUMMARY" in text
     assert "Harbor Ledger" in text
-    assert "SKILLS ALIGNED TO THIS ROLE" in text
+    assert "SKILLS MATCHED TO THIS VACANCY" in text
+    pdf = client.get("/packs/yes-django-backend/resume.pdf")
+    assert pdf.status_code == 200
+    assert pdf.data[:4] == b"%PDF"
+    letter_pdf = client.get("/packs/yes-django-backend/letter.pdf")
+    assert letter_pdf.status_code == 200
+    assert letter_pdf.data[:4] == b"%PDF"
     assert "NimbusPay" in text
 
 

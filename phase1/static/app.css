@@ -423,6 +423,20 @@ textarea.short { min-height: 5.5rem; }
   color: var(--proof);
   font-size: 0.75rem;
 }
+.cv-banner {
+  font-family: Syne, sans-serif;
+  font-weight: 800;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.7rem 0.9rem;
+  margin: 0 0 1rem;
+}
+.cv-body {
+  background: #fff;
+  border: 1px solid var(--rule);
+  padding: 1.1rem 1.2rem;
+  min-height: 12rem;
+}
 .pack, .specimen {
   display: grid;
   gap: 1rem;

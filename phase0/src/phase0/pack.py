@@ -108,16 +108,16 @@ def _tailored_summary(profile: Profile, job: Job) -> str:
             employer = role.employer
             break
     bits = [
-        f"{title} with {_years_phrase(profile)}"
-        + (f", most recently at {employer}" if employer else "")
-        + f", applying for {job.title} at {job.company}."
+        f"{title} targeting {job.title} at {job.company}, with {_years_phrase(profile)}"
+        + (f", including work at {employer}" if employer else "")
+        + "."
     ]
     if overlap:
         if len(overlap) == 1:
             lead = overlap[0]
         else:
             lead = ", ".join(overlap[:-1]) + ", and " + overlap[-1]
-        bits.append(f"This version leads with evidenced {lead} — the tools this vacancy names that the confirmed résumé actually supports.")
+        bits.append(f"Strengths for this vacancy: {lead}.")
     strongest = None
     best = -1
     for role in profile.experience:
@@ -127,7 +127,7 @@ def _tailored_summary(profile: Profile, job: Job) -> str:
                 best = s
                 strongest = bullet.text.rstrip(".")
     if strongest:
-        bits.append(f"Signature work: {strongest}.")
+        bits.append(strongest + ".")
     original = (profile.summary or "").strip()
     if original and not original.lower().startswith("it candidate"):
         if original[-1] not in ".!?":
@@ -167,13 +167,13 @@ def _render_resume(profile: Profile, job: Job, selection: list[str]) -> str:
             "PROFESSIONAL SUMMARY",
             _tailored_summary(profile, job),
             "",
-            "SKILLS ALIGNED TO THIS ROLE",
+            "SKILLS MATCHED TO THIS VACANCY",
         ]
     )
     if lead:
-        lines.append("Core for this vacancy: " + ", ".join(lead))
+        lines.append("Matched to this vacancy: " + ", ".join(lead))
     if extra:
-        lines.append("Also evidenced: " + ", ".join(extra))
+        lines.append("Additional skills: " + ", ".join(extra))
     if not lead and not extra:
         lines.append("See confirmed résumé.")
     lines.extend(["", "EXPERIENCE"])
@@ -284,6 +284,16 @@ def prepare_pack(
         allow_gap_mentions=result.exceptions,
     )
     return Pack(resume_text=resume, letter_text=letter, gaps=result.gaps, job_id=job.id)
+
+
+def tailoring_notes(profile: Profile, job: Job) -> dict:
+    lead, extra = _ordered_skills(profile, job)
+    return {
+        "title": job.title,
+        "company": job.company,
+        "lead": lead,
+        "extra": extra,
+    }
 
 
 def write_pack(pack: Pack, out_dir: Path) -> None:

@@ -144,6 +144,29 @@ AWS Certified Cloud Practitioner
     assert "university" not in cert
 
 
+def test_combined_education_and_certification_heading_splits():
+    text = """
+Ada
+ada@example.com
+Lagos, Nigeria
+
+EDUCATION AND CERTIFICATIONS
+B.Eng Electrical Engineering, University of Nigeria, 2016
+WAEC Senior School Certificate, 2010
+Cisco Certified Network Associate
+PMP
+"""
+    draft = propose_from_text(text)
+    edu = " ".join(draft["education"]).lower()
+    cert = " ".join(draft["certifications"]).lower()
+    assert "university of nigeria" in edu
+    assert "waec" in edu
+    assert "cisco" in cert or "ccna" in cert or "certified" in cert
+    assert "pmp" in cert
+    assert "pmp" not in edu
+    assert "university" not in cert
+
+
 def test_skills_section_fills_confirm_list():
     text = """Ada Okafor
 ada@example.com

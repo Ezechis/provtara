@@ -48,7 +48,8 @@ from phase1.parse import (
     split_optional_lines,
 )
 from phase1.mailer import qualified_digest, reset_message, send_mail, smtp_ready
-from phase1.pack_files import markdown_to_docx
+from phase0.pack import tailoring_notes
+from phase1.pack_files import markdown_to_docx, markdown_to_pdf
 from phase1.plans import ORDER, PLANS, get_plan, money, pack_budget
 from phase1.store import (
     alert_already_sent,
@@ -898,7 +899,17 @@ def create_app(test_config: dict | None = None) -> Flask:
         if row is None:
             return "No pack", 404
         job = get_job(app.config["JOBS_DIR"], job_id, ingested_jobs())
-        return render_template("pack.html", job=job, pack=row, source=job_source(job) if job else "")
+        notes = None
+        profile = current_profile()
+        if profile is not None and job is not None:
+            notes = tailoring_notes(profile, job)
+        return render_template(
+            "pack.html",
+            job=job,
+            pack=row,
+            source=job_source(job) if job else "",
+            notes=notes,
+        )
 
     def _pack_file(job_id: str, field: str, filename: str, mime: str):
         row = get_pack(db(), session["user_id"], job_id)
@@ -928,9 +939,6 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.get("/packs/<job_id>/resume.docx")
     @login_required
     def pack_resume_docx(job_id: str):
-        if not _current_plan()["docx"]:
-            flash("Word download is on Basic and above. See Pricing.")
-            return redirect(url_for("pricing"))
         row = get_pack(db(), session["user_id"], job_id)
         if row is None:
             return Response("No pack", status=404)
@@ -938,6 +946,42 @@ def create_app(test_config: dict | None = None) -> Flask:
             markdown_to_docx(row["resume_text"]),
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={"Content-Disposition": f"attachment; filename={job_id}-resume.docx"},
+        )
+
+    @app.get("/packs/<job_id>/letter.docx")
+    @login_required
+    def pack_letter_docx(job_id: str):
+        row = get_pack(db(), session["user_id"], job_id)
+        if row is None:
+            return Response("No pack", status=404)
+        return Response(
+            markdown_to_docx(row["letter_text"]),
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={job_id}-cover-letter.docx"},
+        )
+
+    @app.get("/packs/<job_id>/resume.pdf")
+    @login_required
+    def pack_resume_pdf(job_id: str):
+        row = get_pack(db(), session["user_id"], job_id)
+        if row is None:
+            return Response("No pack", status=404)
+        return Response(
+            markdown_to_pdf(row["resume_text"]),
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={job_id}-resume.pdf"},
+        )
+
+    @app.get("/packs/<job_id>/letter.pdf")
+    @login_required
+    def pack_letter_pdf(job_id: str):
+        row = get_pack(db(), session["user_id"], job_id)
+        if row is None:
+            return Response("No pack", status=404)
+        return Response(
+            markdown_to_pdf(row["letter_text"]),
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={job_id}-cover-letter.pdf"},
         )
 
     def _currency() -> str:
