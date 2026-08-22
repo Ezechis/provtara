@@ -697,24 +697,39 @@ def create_app(test_config: dict | None = None) -> Flask:
         focus = request.args.get("job") or ""
         ready = []
         blocked = []
+        queue = []
+        uid = session["user_id"]
         for job in all_jobs(app.config["JOBS_DIR"], ingested_jobs()):
             if job.id in hidden:
                 continue
             result = qualify(profile, job)
+            pack = get_pack(db(), uid, job.id)
+            status = statuses.get(job.id, "")
             row = {
                 "job": job,
                 "source": job_source(job),
                 "result": result,
-                "status": statuses.get(job.id, ""),
+                "status": status,
                 "fit": result.fit,
+                "pack": pack,
             }
             if result.passed:
                 ready.append(row)
+                if pack is not None:
+                    queue.append(row)
             else:
                 blocked.append(row)
         ready.sort(key=lambda r: (-r["fit"].percent, r["job"].title.lower()))
         blocked.sort(key=lambda r: (-r["fit"].percent, r["job"].title.lower()))
-        return render_template("auto_apply.html", ready=ready, blocked=blocked, focus=focus)
+        queue.sort(key=lambda r: (r["status"] == "opened", -r["fit"].percent, r["job"].title.lower()))
+        return render_template(
+            "auto_apply.html",
+            ready=ready,
+            blocked=blocked,
+            queue=queue,
+            focus=focus,
+            show_queue=request.args.get("queue") == "1" or bool(queue),
+        )
 
     @app.post("/auto-apply")
     @login_required
@@ -723,6 +738,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         if profile is None:
             return redirect(url_for("upload"))
         selected = request.form.getlist("job_id")
+        if not selected:
+            flash("Tick the jobs you want applications for.")
+            return redirect(url_for("auto_apply"))
         blocked = _pack_allowed(session["user_id"])
         if blocked:
             flash(blocked)
@@ -761,12 +779,18 @@ def create_app(test_config: dict | None = None) -> Flask:
             prepared += 1
             if prepared >= batch:
                 break
-        flash(
-            f"Auto-apply prepared {prepared} pack(s). "
-            f"Skipped {skipped} (failed gate or truth check). "
-            "Open each official listing to apply. Provtara does not log into ATS or click Submit."
-        )
-        return redirect(url_for("auto_apply"))
+        if prepared:
+            flash(
+                f"Prepared {prepared} application(s). "
+                "Download the résumé and letter for each job, then continue to that job’s own form and submit there. "
+                "Provtara cannot press Submit on the employer’s site."
+            )
+        else:
+            flash(
+                f"No applications prepared. Skipped {skipped} "
+                "(missing must-haves, or this plan’s pack limit is used up)."
+            )
+        return redirect(url_for("auto_apply", queue="1"))
 
     @app.post("/auto-apply/<job_id>/opened")
     @login_required

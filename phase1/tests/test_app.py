@@ -159,10 +159,18 @@ def test_auto_apply_skips_failed_gate(client):
         follow_redirects=True,
     )
     assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Ready to send" in body
+    assert "Continue this application" in body
+    assert "Verified boards" not in body
+    assert "You do not need board homepages" in body
     assert client.get("/packs/no-k8s-sre/resume.md").status_code == 404
     yes = client.get("/packs/yes-django-backend/resume.md")
     assert yes.status_code == 200
     assert b"Kubernetes" not in yes.data
+    opened = client.post("/auto-apply/yes-django-backend/opened", follow_redirects=False)
+    assert opened.status_code in (302, 303)
+    assert "harbor-ledger" in (opened.headers.get("Location") or "")
 
 
 def test_jobs_rank_by_evidenced_fit_percent(client):

@@ -10,7 +10,7 @@ PLANS: dict[str, dict] = {
         "ngn_year": 0,
         "profiles": 1,
         "packs_month": 2,
-        "auto_batch": 1,
+        "auto_batch": 2,
         "docx": False,
         "pdf": False,
         "alerts": "weekly3",

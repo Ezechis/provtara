@@ -1,54 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Auto-apply — Provtara{% endblock %}
 {% block body %}
-<h1>Auto-apply desk</h1>
-<p>Pick a path per job. Both stay honest:</p>
-<ul>
-  <li><strong>Apply directly</strong> — official vacancy on the verified <a href="{{ url_for('boards') }}">boards</a>, or the employer. You submit there.</li>
-  <li><strong>Auto-apply</strong> — tick jobs that already pass the gate. We generate a true pack, then you open each official apply page with that pack. Provtara does not log into an ATS and does not click Submit. We never invent skills to make a listing fit. Max {{ current_plan.auto_batch }} jobs per run on {{ current_plan.label }}.</li>
-</ul>
+<h1>Auto-apply</h1>
+<p>Tick the jobs you want. We write a résumé and letter from your confirmed skills, then you continue each job’s own application form. You do not need board homepages. The form lives on that listing; we cannot press Submit there for you.</p>
+<p class="meta">{{ current_plan.label }}: up to {{ current_plan.auto_batch }} job{{ 's' if current_plan.auto_batch != 1 else '' }} per run, {{ current_plan.packs_month }} packs this month.</p>
+
+{% if queue %}
+<h2>Ready to send — {{ queue|length }}</h2>
+<p>For each job: download the pack, then continue the application. Attach those files on their form.</p>
+<div class="cards">
+  {% for row in queue %}
+    <article class="card card-pass{% if focus == row.job.id %} focus{% endif %}">
+      <div class="card-head">
+        <div>
+          <h2>{{ row.job.title }}</h2>
+          <p class="meta">{{ row.job.company }}{% if row.status == 'opened' %} · opened{% endif %}</p>
+        </div>
+        {% with fit=row.fit %}{% include "_fit_stamp.html" %}{% endwith %}
+      </div>
+      <div class="actions">
+        <form method="post" action="{{ url_for('auto_apply_opened', job_id=row.job.id) }}">
+          <button class="btn" type="submit">Continue this application</button>
+        </form>
+        <a class="btn secondary" href="{{ url_for('pack_preview', job_id=row.job.id) }}">See résumé &amp; letter</a>
+        <a href="{{ url_for('pack_resume', job_id=row.job.id) }}">Download résumé</a>
+        <a href="{{ url_for('pack_letter', job_id=row.job.id) }}">Download letter</a>
+      </div>
+    </article>
+  {% endfor %}
+</div>
+{% endif %}
+
 <form id="auto" method="post" action="{{ url_for('auto_apply_run') }}"></form>
-<h2>Qualified — can auto-prepare</h2>
-{% if not ready %}<p>No jobs pass the gate yet. Confirm a résumé, or pick a role whose must-haves you actually have.</p>{% endif %}
+<h2>Pick jobs</h2>
+{% if not ready %}<p>No jobs pass the gate yet. Confirm a résumé whose must-haves you actually have.</p>{% endif %}
 <div class="cards">
   {% for row in ready %}
-    <article class="card card-pass{% if focus == row.job.id %} focus{% endif %}">
+    <article class="card{% if row.pack %} card-pass{% endif %}{% if focus == row.job.id %} focus{% endif %}">
       <div class="card-head">
         <label class="pick">
           <input form="auto" type="checkbox" name="job_id" value="{{ row.job.id }}"
-            {% if (focus and focus == row.job.id) or (not focus and row.status != 'opened') %}checked{% endif %}>
+            {% if (focus and focus == row.job.id) or (not focus and not row.pack) %}checked{% endif %}>
           <strong>{{ row.job.title }}</strong>
         </label>
         {% with fit=row.fit %}{% include "_fit_stamp.html" %}{% endwith %}
       </div>
-      <p class="meta">{{ row.job.company }} · via {{ row.source }} · {{ row.status or 'not prepared' }}</p>
-      <p class="actions">
-        <a class="btn" href="{{ row.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
-        {% if row.status %}
-          <a class="btn secondary" href="{{ url_for('pack_preview', job_id=row.job.id) }}">Pack</a>
-        {% endif %}
-      </p>
-      {% if row.status %}
-        <form method="post" action="{{ url_for('auto_apply_opened', job_id=row.job.id) }}">
-          <button class="text-btn" type="submit">Mark opened and go to {{ row.job.company }} listing →</button>
-        </form>
-      {% endif %}
+      <p class="meta">{{ row.job.company }}{% if row.pack %} · pack ready{% endif %}</p>
     </article>
   {% endfor %}
 </div>
 {% if ready %}
-  <p class="actions"><button form="auto" class="btn" type="submit">Auto-prepare selected packs</button></p>
+  <p class="actions"><button form="auto" class="btn" type="submit">Prepare applications</button></p>
 {% endif %}
-<h2>Blocked by the gate</h2>
-<p class="muted">Auto-apply will not run on these. You can still apply directly if you want — Provtara will not invent the missing skills.</p>
+
+{% if blocked %}
+<h2>Cannot auto-apply — missing must-haves</h2>
+<p class="muted">We will not invent the missing skills. You can still open those listings yourself.</p>
 <ul>
   {% for row in blocked %}
     <li>
       {{ row.job.title }} — {{ row.job.company }}
       · {{ row.fit.percent }}%
       ({{ row.result.failed_must_haves | join(', ') }})
-      · <a href="{{ row.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
+      · <a href="{{ row.job.apply_url }}" target="_blank" rel="noopener">Open listing</a>
     </li>
   {% endfor %}
 </ul>
+{% endif %}
 {% endblock %}
