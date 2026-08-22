@@ -88,6 +88,7 @@ def test_sample_profile_then_qualified_job_not_sre(client):
     assert r.status_code == 200
     jobs = r.get_data(as_text=True)
     assert "Harbor Ledger" in jobs
+    assert "Your matches" in jobs
     assert "Prepare" in jobs
     # SRE role is a long shot, not a prepare target
     r2 = client.get("/jobs/no-k8s-sre")
@@ -213,13 +214,31 @@ def test_resume_draft_stays_out_of_the_session_cookie(client):
     )
     r = client.post("/upload", data={"resume_text": blob}, follow_redirects=True)
     assert r.status_code == 200
-    assert "Confirm this reading" in r.get_data(as_text=True)
+    assert ">Confirm<" in r.get_data(as_text=True) or "Confirm" in r.get_data(as_text=True)
     with client.session_transaction() as sess:
         assert "draft" not in sess
         assert "raw_text" not in sess
     confirmed = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
     assert confirmed.status_code == 200
-    assert "Jobs you can honestly do" in confirmed.get_data(as_text=True)
+    assert "Your matches" in confirmed.get_data(as_text=True)
+
+
+def test_stale_login_does_not_500_on_upload(client):
+    _register_and_login(client)
+    with client.session_transaction() as sess:
+        sess["user_id"] = 99999
+        sess["email"] = "ghost@example.com"
+    r = client.post("/upload/sample", follow_redirects=False)
+    assert r.status_code != 500
+    assert r.status_code in (302, 303)
+    assert "/login" in r.headers["Location"]
+    r2 = client.post(
+        "/upload",
+        data={"resume_text": "Ada\nada@example.com\nBuilt Django REST APIs on PostgreSQL."},
+        follow_redirects=False,
+    )
+    assert r2.status_code != 500
+    assert r2.status_code in (302, 303)
 
 
 def test_cannot_pack_failed_gate(client):

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Upload your Resume{% endblock %}
+{% block title %}Upload your résumé{% endblock %}
 {% block body %}
-<h1>Upload Your Resume</h1>
-<p>PDF, Word, or pasted text. The next screen is a proposal — nothing is live until you confirm. Struck skills never appear in a pack.</p>
+<h1>Upload your résumé</h1>
+<p>PDF, Word, or pasted text. Next screen: <strong>Confirm</strong>. After you confirm, matching jobs come up with a fit percent.</p>
 <form method="post" enctype="multipart/form-data">
   <label>PDF or DOCX
     <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
@@ -10,10 +10,10 @@
   <label>Or paste the text
     <textarea name="resume_text" placeholder="Name, email, roles, tools you actually used…"></textarea>
   </label>
-  <p class="actions"><button class="btn" type="submit">Propose a profile</button></p>
+  <p class="actions"><button class="btn" type="submit">Continue to confirm</button></p>
 </form>
 <form method="post" action="{{ url_for('upload_sample') }}">
-  <p class="muted">Or load the Phase 0 fixture (Jordan Hale, fictional) to walk the gate.</p>
-  <button class="btn secondary" type="submit">Use sample profile</button>
+  <p class="muted">No file handy? The demo résumé (a fictional backend engineer) still goes to Confirm, then to ranked jobs.</p>
+  <button class="btn secondary" type="submit">Try the demo résumé</button>
 </form>
 {% endblock %}

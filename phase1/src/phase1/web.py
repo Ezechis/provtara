@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import sqlite3
 import threading
 from datetime import datetime, timezone
 from functools import wraps
@@ -114,6 +115,14 @@ def create_app(test_config: dict | None = None) -> Flask:
         flash("That file is too large. Use a résumé under 4 MB, or paste the text.")
         return redirect(url_for("upload")), 413
 
+    @app.errorhandler(500)
+    def server_error(_err):
+        return render_template(
+            "error.html",
+            heading="That step failed",
+            detail="Log in again, then upload your résumé once more. If it still fails, paste the text instead of the file.",
+        ), 500
+
     def db():
         if "db" not in g:
             g.db = connect(app.config["DATABASE"])
@@ -126,6 +135,17 @@ def create_app(test_config: dict | None = None) -> Flask:
         if conn is not None:
             conn.close()
 
+    @app.before_request
+    def drop_stale_session():
+        if request.endpoint in {"static", "health"}:
+            return
+        uid = session.get("user_id")
+        if uid is None:
+            return
+        if get_user(db(), uid) is None:
+            session.clear()
+            flash("Please log in again. The workshop reset, so that sign-in is no longer on this server.")
+
     def login_required(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
@@ -134,6 +154,10 @@ def create_app(test_config: dict | None = None) -> Flask:
                 if nxt.endswith("?"):
                     nxt = nxt[:-1]
                 return redirect("/login?next=" + quote(nxt, safe=""))
+            if get_user(db(), session["user_id"]) is None:
+                session.clear()
+                flash("Please log in again.")
+                return redirect("/login")
             return view(*args, **kwargs)
 
         return wrapped
@@ -347,7 +371,12 @@ def create_app(test_config: dict | None = None) -> Flask:
             if not text:
                 flash("Upload a PDF or DOCX, or paste the résumé text.")
                 return render_template("upload.html"), 400
-            save_draft(db(), session["user_id"], propose_from_text(text), text)
+            try:
+                save_draft(db(), session["user_id"], propose_from_text(text), text)
+            except sqlite3.IntegrityError:
+                session.clear()
+                flash("Please log in again, then upload the résumé.")
+                return redirect(url_for("login"))
             return redirect(url_for("confirm"))
         return render_template("upload.html")
 
@@ -355,7 +384,12 @@ def create_app(test_config: dict | None = None) -> Flask:
     @login_required
     def upload_sample():
         profile = load_profile(app.config["SAMPLE_PROFILE"])
-        save_draft(db(), session["user_id"], profile_to_dict(profile), "sample: Jordan Hale fixture")
+        try:
+            save_draft(db(), session["user_id"], profile_to_dict(profile), "sample: Jordan Hale fixture")
+        except sqlite3.IntegrityError:
+            session.clear()
+            flash("Please log in again, then try the demo résumé.")
+            return redirect(url_for("login"))
         return redirect(url_for("confirm"))
 
     @app.route("/confirm", methods=["GET", "POST"])

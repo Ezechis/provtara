@@ -1,19 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Confirm profile{% endblock %}
+{% block title %}Confirm{% endblock %}
 {% block body %}
-<h1>Confirm this reading</h1>
-<p>If a skill is listed without a bullet that evidences it, it will be struck on save.</p>
+<h1>Confirm</h1>
+<p>This is what we read. Check it. Confirm, and jobs that match this résumé rise to the top with a fit percent. A skill with no bullet underneath will be dropped.</p>
 <form method="post" class="stack" style="max-width:40rem">
   <label>Name <input name="name" value="{{ draft.name }}"></label>
   <label>Email <input name="email" value="{{ draft.email }}"></label>
   <label>Location <input name="location" value="{{ draft.location }}"></label>
   <label>Career start <input name="career_start" value="{{ draft.career_start }}"></label>
-  <label>Work authorization (comma) <input name="work_authorization" value="{{ draft.work_authorization | join(', ') }}"></label>
-  <label>Skills (comma) <input name="skills" value="{{ draft.skills | join(', ') }}"></label>
+  <label>Work authorization (comma) <input name="work_authorization" value="{{ (draft.work_authorization or []) | join(', ') }}"></label>
+  <label>Skills (comma) <input name="skills" value="{{ (draft.skills or []) | join(', ') }}"></label>
   <input type="hidden" name="confirm" value="1">
-  <button class="btn" type="submit">Confirm profile</button>
+  <p class="actions"><button class="btn" type="submit">Confirm — show matching jobs</button></p>
 </form>
-<h2>Proposed bullets</h2>
+<h2>Bullets we will use as evidence</h2>
+{% if not draft.experience %}
+<p class="muted">No evidenced bullets yet. Add tools you actually used into the skills line only if a bullet below names them — or go back and paste a longer résumé.</p>
+<p><a href="{{ url_for('upload') }}">Upload again</a></p>
+{% endif %}
 {% for role in draft.experience %}
   <div class="card">
     <strong>{{ role.title }}</strong>, {{ role.employer }} ({{ role.start }} – {{ role.end }})
