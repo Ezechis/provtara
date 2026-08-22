@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -87,8 +88,8 @@ def test_confirm_page_shows_phone_profile_education_and_full_country(client):
     page = client.get("/confirm").get_data(as_text=True)
     assert 'name="phone"' in page
     assert 'name="location"' not in page
-    assert "Profile" in page
-    assert "Work Authorization / Location" in page
+    assert "Professional profile" in page
+    assert "Work authorization / location" in page
     assert "Nigeria" in page
     assert ">NG<" not in page
     assert "Python" in page
@@ -122,6 +123,49 @@ def test_confirm_page_shows_phone_profile_education_and_full_country(client):
     assert "Work authorization / location" in text
     assert "University of Lagos" in text
     assert "CERTIFICATIONS" not in text
+
+
+def test_confirm_fields_stay_in_their_boxes(client):
+    cv = """
+Ezechi Kingsley
+ezechi@example.com
++234 803 111 2222
+Lagos, Nigeria
+Results-driven IT professional, with eight years delivering network and cloud solutions for banks.
+
+PROFESSIONAL SUMMARY
+Network and backend engineer who ships Django APIs.
+
+WORK EXPERIENCE
+Network Engineer, MainOne, Jan 2020 – Present
+- Designed Django REST APIs on PostgreSQL for the ops portal
+
+EDUCATIONAL QUALIFICATIONS
+B.Sc Computer Science, University of Lagos, 2014
+
+CORE COMPETENCIES
+Python, Django, PostgreSQL, Cisco
+
+CERTIFICATIONS
+CCNA
+"""
+    _register_and_login(client, email="qa-fields@example.com")
+    r = client.post("/upload", data={"resume_text": cv}, follow_redirects=True)
+    html = r.get_data(as_text=True)
+    assert r.status_code == 200
+    profile = re.search(r'name="profile"[^>]*>(.*?)</textarea>', html, re.S).group(1)
+    auth = re.search(r'name="work_authorization"[^>]*value="([^"]*)"', html).group(1)
+    skills = re.search(r'name="skills"[^>]*>(.*?)</textarea>', html, re.S).group(1)
+    education = re.search(r'name="education"[^>]*>(.*?)</textarea>', html, re.S).group(1)
+    certs = re.search(r'name="certifications"[^>]*>(.*?)</textarea>', html, re.S).group(1)
+    assert "Network and backend engineer" in profile
+    assert "Results-driven" not in auth
+    assert "Nigeria" in auth
+    assert "Lagos" in auth
+    assert "Python" in skills
+    assert "Cisco" in skills
+    assert "University of Lagos" in education
+    assert "CCNA" in certs
 
 
 def test_sample_profile_then_qualified_job_not_sre(client):

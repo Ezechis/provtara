@@ -115,6 +115,38 @@ def _split_skill_tokens(blob: str) -> list[str]:
     return out
 
 
+def _clean_profile_text(text: str) -> str:
+    value = (text or "").strip()
+    if not value:
+        return ""
+    value = _EMAIL.sub("", value)
+    value = _PHONE.sub("", value)
+    value = re.sub(r"\s+", " ", value).strip(" ,;|-")
+    from phase0.geo import looks_like_place
+
+    if looks_like_place(value) and len(value) < 50:
+        return ""
+    return value[:400]
+
+
+def confirm_view(draft: dict) -> dict:
+    """Values bound to Confirm — each box gets one kind of data."""
+    from phase0.geo import auth_location_display, looks_like_place
+
+    data = dict(draft or {})
+    data["summary"] = _clean_profile_text(data.get("summary") or "")
+    loc = auth_location_display(data)
+    if loc and not looks_like_place(loc):
+        loc = ", ".join(
+            x for x in (data.get("work_authorization") or []) if x and str(x).upper() != "ANY"
+        )
+    data["auth_location"] = loc
+    data["skills_text"] = ", ".join(data.get("skills") or [])
+    data["education_text"] = "\n".join(data.get("education") or [])
+    data["certifications_text"] = "\n".join(data.get("certifications") or [])
+    return data
+
+
 def merge_skills(*groups: list[str]) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
@@ -220,14 +252,16 @@ def extract_pdf(data: bytes) -> str:
 
 def _normalize_resume_text(text: str) -> str:
     text = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = _EMAIL.sub(lambda m: m.group(0) + "\n", text)
+    text = _PHONE.sub(lambda m: "\n" + m.group(0) + "\n", text)
     text = re.sub(
-        r"(?i)(?<=\S)\s+(professional\s+summary|personal\s+profile|core\s+competenc\w*|"
-        r"educational\s+qualif\w*|key\s+skills|work\s+experience|"
+        r"(?i)(?<=\S)\s+(professional\s+summary|personal\s+profile|career\s+objective|"
+        r"core\s+competenc\w*|educational\s+qualif\w*|key\s+skills|work\s+experience|"
         r"education|experience|skills|certifications?)\b",
         r"\n\1",
         text,
     )
-    return text
+    return re.sub(r"\n{3,}", "\n\n", text)
 
 
 def _kind_from_head(head: str) -> str | None:
@@ -353,7 +387,7 @@ def propose_from_text(text: str) -> dict:
         phone = ph.group(0).strip()
     this_year = date.today().year
     years = [int(y) for y in _YEAR.findall(text) if 1995 <= int(y) <= this_year]
-    career_start = normalize_career_start(f"{min(years)}-01-01" if years else "2023-01-01")
+    career_start = normalize_career_start(f"{min(years)}-01-01" if years else "2023-01-01")  # replaced after roles
     catalog_skills = _skills_in(text)
     section_skills: list[str] = []
 
@@ -400,8 +434,9 @@ def propose_from_text(text: str) -> dict:
                 education.append(ln)
             continue
         if section == "cert":
-            if len(ln) > 4:
-                certifications.append(_clean_bullet(ln))
+            token = _clean_bullet(ln)
+            if len(token) >= 2:
+                certifications.append(token)
             continue
         if section == "sum":
             if len(ln) > 20:
@@ -486,9 +521,19 @@ def propose_from_text(text: str) -> dict:
             summary_bits.append(b["text"].rstrip("."))
         if summary_bits:
             summary = ". ".join(summary_bits) + "."
+    role_years: list[int] = []
+    for role in roles:
+        role_years.extend(int(y) for y in _YEAR.findall(role.get("start") or "") if 1995 <= int(y) <= this_year)
+    if role_years:
+        career_start = normalize_career_start(f"{min(role_years)}-01-01")
+    elif years:
+        edu_years = {int(y) for row in education for y in _YEAR.findall(row)}
+        work_years = [y for y in years if y not in edu_years] or years
+        career_start = normalize_career_start(f"{min(work_years)}-01-01")
     auth = guess_work_authorization(text)
     if not location or location.lower() == "not specified":
-        location = auth[0] if auth else "Not specified"
+        location = auth[0] if auth else ""
+    summary = _clean_profile_text(summary)
     return {
         "name": name[:80],
         "email": email,

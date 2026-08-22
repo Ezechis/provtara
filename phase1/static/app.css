@@ -308,6 +308,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
 .text-btn { background: none; border: 0; color: var(--spot); cursor: pointer; font: inherit; padding: 0; }
 .stack { display: grid; gap: 0.75rem; max-width: 28rem; }
+.review-form { max-width: 42rem; gap: 1rem; }
+.review-block {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.review-block h2 { margin: 0; font-size: 1.05rem; }
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
 label { font-size: 0.85rem; color: var(--muted); }
 input, textarea {
   width: 100%;

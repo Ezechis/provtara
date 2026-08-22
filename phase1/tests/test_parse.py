@@ -98,13 +98,16 @@ HND Electrical Engineering, Yaba College of Technology, 2011
 
 CORE COMPETENCIES
 Python, Django, PostgreSQL, Networking, Cisco, Cloud
+
+CERTIFICATIONS
+CCNA
 """
     draft = propose_from_text(text)
     assert "Results-driven" in (draft["summary"] or "")
-    assert "eight years" in (draft["summary"] or "").lower() or "Results-driven" in draft["summary"]
     loc = (draft["location"] or "").lower()
     assert "results-driven" not in loc
     assert "Nigeria" in draft["work_authorization"]
+    assert draft["career_start"].startswith("2020")
     skills = {s.lower() for s in draft["skills"]}
     assert "python" in skills
     assert "django" in skills
@@ -113,6 +116,7 @@ Python, Django, PostgreSQL, Networking, Cisco, Cloud
     edu = " ".join(draft["education"]).lower()
     assert "university of lagos" in edu
     assert "b.sc" in edu or "computer science" in edu
+    assert any("ccna" in c.lower() for c in draft["certifications"])
 
 
 def test_skills_section_fills_confirm_list():

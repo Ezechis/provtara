@@ -25,7 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from phase0.models import GateFailed, TruthFailed
 from phase0.pack import prepare_pack
-from phase0.geo import auth_location_display, split_auth_location
+from phase0.geo import split_auth_location
 from phase0.qualify import load_profile, profile_from_dict, profile_to_dict, qualify
 from phase1.catalog import all_jobs, get_job
 from phase1.ingest import BOARD_HOMES, SOURCES, fetch_free_boards, job_source
@@ -41,6 +41,7 @@ from phase1.templates_catalog import (
     resume_pack_markdown,
 )
 from phase1.parse import (
+    confirm_view,
     extract_upload,
     normalize_career_start,
     propose_from_text,
@@ -482,11 +483,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 start = normalize_career_start(request.form["career_start"].strip(), fallback="")
                 if not start:
                     flash("Career start must be a date like 2023-02-01.")
-                    return render_template(
-                        "confirm.html",
-                        draft=draft,
-                        auth_location=auth_location_display(draft),
-                    ), 400
+                    return render_template("confirm.html", draft=confirm_view(draft)), 400
                 draft["career_start"] = start
             auth_raw = (request.form.get("work_authorization") or "").strip()
             countries, loc = split_auth_location(auth_raw)
@@ -507,11 +504,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 profile_from_dict(draft)
             except (KeyError, TypeError, ValueError):
                 flash("That profile could not be saved. Check the dates and try again.")
-                return render_template(
-                    "confirm.html",
-                    draft=draft,
-                    auth_location=auth_location_display(draft),
-                ), 400
+                return render_template("confirm.html", draft=confirm_view(draft)), 400
             save_profile(db(), session["user_id"], draft, raw_text)
             clear_draft(db(), session["user_id"])
             flash(
@@ -521,11 +514,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             if n:
                 flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
             return redirect(url_for("jobs"))
-        return render_template(
-            "confirm.html",
-            draft=draft,
-            auth_location=auth_location_display(draft),
-        )
+        return render_template("confirm.html", draft=confirm_view(draft))
 
     @app.get("/jobs")
     @login_required

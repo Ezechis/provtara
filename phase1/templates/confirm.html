@@ -1,34 +1,52 @@
 {% extends "base.html" %}
-{% block title %}Confirm{% endblock %}
+{% block title %}Confirm your details{% endblock %}
 {% block body %}
-<h1>Confirm</h1>
-<p>This is what we read from your résumé. Skills come from the file — check them, strike any that are not yours. Education and certifications are optional.</p>
-<form method="post" class="stack" style="max-width:40rem">
-  <label>Name <input name="name" value="{{ draft.name }}"></label>
-  <label>Email <input name="email" value="{{ draft.email }}" autocomplete="email"></label>
-  <label>Phone <input name="phone" value="{{ draft.phone or '' }}" autocomplete="tel" placeholder="Optional"></label>
-  <label>Profile
-    <textarea class="short" name="profile" placeholder="Short professional profile — optional to edit">{{ draft.summary or '' }}</textarea>
-  </label>
+<h1>Confirm your details</h1>
+<p>Check every box. The professional profile is the bio. Work authorization / location is only the country or city. Skills and education come from the résumé. Confirm only when each box has the right kind of text.</p>
+<form method="post" class="stack review-form">
+  <div class="review-block">
+    <h2>Contact</h2>
+    <label>Name <input id="name" name="name" value="{{ draft.name }}"></label>
+    <label>Email <input id="email" name="email" value="{{ draft.email }}" autocomplete="email"></label>
+    <label>Phone <input id="phone" name="phone" value="{{ draft.phone or '' }}" autocomplete="tel" placeholder="Not found — add if you have one"></label>
+  </div>
+  <div class="review-block">
+    <h2>Professional profile</h2>
+    <span class="field-hint">Opening summary from the résumé. This is not the country.</span>
+    <label class="sr-only" for="profile">Professional profile</label>
+    <textarea id="profile" class="short" name="profile" placeholder="Not found in the résumé — paste a short bio if you want one">{{ draft.summary or '' }}</textarea>
+  </div>
+  <div class="review-block">
+    <h2>Work authorization / location</h2>
+    <span class="field-hint">Country in full, with city if you have it — e.g. Lagos, Nigeria. Not the bio.</span>
+    <label class="sr-only" for="work_authorization">Work authorization / location</label>
+    <input id="work_authorization" name="work_authorization" value="{{ draft.auth_location or '' }}" placeholder="Nigeria">
+  </div>
   <label>Career start <input name="career_start" value="{{ draft.career_start }}"></label>
-  <label>Work Authorization / Location
-    <input name="work_authorization" value="{{ auth_location }}" placeholder="Nigeria, Kenya, United States…">
-  </label>
-  <label>Skills
-    <textarea class="short" name="skills" placeholder="Taken from your résumé — edit if needed">{{ (draft.skills or []) | join(', ') }}</textarea>
-  </label>
-  <label>Educational qualifications <span class="muted">Not mandatory</span>
-    <textarea class="short" name="education" placeholder="One per line. Leave blank if none.">{{ (draft.education or []) | join('\n') }}</textarea>
-  </label>
-  <label>Certifications <span class="muted">Not mandatory</span>
-    <textarea class="short" name="certifications" placeholder="One per line. Leave blank if none.">{{ (draft.certifications or []) | join('\n') }}</textarea>
-  </label>
+  <div class="review-block">
+    <h2>Skills</h2>
+    <span class="field-hint">Copied from Skills / Core Competencies and tools named in the file.</span>
+    <label class="sr-only" for="skills">Skills</label>
+    <textarea id="skills" class="short" name="skills" placeholder="Not found — type skills from the résumé, separated by commas">{{ draft.skills_text or '' }}</textarea>
+  </div>
+  <div class="review-block">
+    <h2>Educational qualifications <span class="muted">Not mandatory</span></h2>
+    <span class="field-hint">Degrees and schools. Leave blank if the résumé has none.</span>
+    <label class="sr-only" for="education">Educational qualifications</label>
+    <textarea id="education" class="short" name="education" placeholder="One per line">{{ draft.education_text or '' }}</textarea>
+  </div>
+  <div class="review-block">
+    <h2>Certifications <span class="muted">Not mandatory</span></h2>
+    <span class="field-hint">Leave blank if none.</span>
+    <label class="sr-only" for="certifications">Certifications</label>
+    <textarea id="certifications" class="short" name="certifications" placeholder="One per line">{{ draft.certifications_text or '' }}</textarea>
+  </div>
   <input type="hidden" name="confirm" value="1">
   <p class="actions"><button class="btn" type="submit">Confirm — show matching jobs</button></p>
 </form>
 <h2>Experience we will tailor from</h2>
 {% if not draft.experience %}
-<p class="muted">No evidenced bullets yet. Add tools you actually used into the skills line only if a bullet below names them — or go back and paste a longer résumé.</p>
+<p class="muted">No jobs/roles were read from the résumé. Paste a version with role titles and bullets, or continue — matching will be weaker.</p>
 <p><a href="{{ url_for('upload') }}">Upload again</a></p>
 {% endif %}
 {% for role in draft.experience %}
