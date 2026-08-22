@@ -2,8 +2,16 @@
 {% block title %}{{ job.title }}{% endblock %}
 {% block body %}
 <p class="meta"><a href="{{ url_for('jobs') }}">← Jobs</a></p>
-<h1>{{ job.title }}</h1>
-<p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+<div class="card-head">
+  <div>
+    <h1>{{ job.title }}</h1>
+    <p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+  </div>
+  {% with fit=result.fit %}{% include "_fit_stamp.html" %}{% endwith %}
+</div>
+<p class="muted">{{ result.fit.must_met }}/{{ result.fit.must_total }} must-have requirements evidenced
+  {%- if result.fit.nice_total %} · {{ result.fit.nice_met }}/{{ result.fit.nice_total }} nice-to-haves{% endif %}.
+  {% if result.passed %}Gate pass.{% else %}Gate failed — percent is closeness, not a pack.{% endif %}</p>
 <p>{{ job.description }}</p>
 <p class="actions">
   <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>

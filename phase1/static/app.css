@@ -331,6 +331,46 @@ textarea { min-height: 12rem; }
   padding: 1rem 1.1rem;
 }
 .card h2 { margin: 0 0 0.3rem; font-size: 1.2rem; }
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.card-head h1, .card-head h2 { margin-top: 0; }
+.card-pass { border-left: 3px solid var(--pass); }
+.fit {
+  flex: 0 0 auto;
+  text-align: right;
+  min-width: 4.4rem;
+  padding: 0.1rem 0 0.1rem 0.7rem;
+  border-left: 1px solid var(--rule);
+}
+.fit-num {
+  font-family: Syne, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  display: block;
+}
+.fit-pct {
+  font-size: 0.52em;
+  letter-spacing: -0.02em;
+  margin-left: 0.04em;
+}
+.fit-cap {
+  display: block;
+  margin-top: 0.22rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fit-high .fit-num { color: var(--pass); }
+.fit-mid .fit-num { color: #8a6a12; }
+.fit-low .fit-num { color: var(--proof); }
 .meta { color: var(--muted); font-size: 0.85rem; }
 .gap {
   width: 100%;

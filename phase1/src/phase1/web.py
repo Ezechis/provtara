@@ -205,11 +205,12 @@ def create_app(test_config: dict | None = None) -> Flask:
                 continue
             if kind == "daily_ng" and market_id(job) != "ng":
                 continue
-            if not qualify(profile, job).passed:
+            result = qualify(profile, job)
+            if not result.passed:
                 continue
-            picked.append({"job": job})
-            if len(picked) >= cap:
-                break
+            picked.append({"job": job, "fit": result.fit})
+        picked.sort(key=lambda row: (-row["fit"].percent, row["job"].title.lower()))
+        picked = picked[:cap]
         if not picked:
             return 0
         origin = (request.url_root or "https://provtara.onrender.com").rstrip("/")
@@ -373,7 +374,10 @@ def create_app(test_config: dict | None = None) -> Flask:
             draft["skills"] = grounded_skills(listed, bullets)
             save_profile(db(), session["user_id"], draft, session.get("raw_text") or "")
             session.pop("draft", None)
-            flash("Profile confirmed. Skills without a bullet were struck.")
+            flash(
+                "Profile confirmed. Skills without a bullet were struck. "
+                "Jobs that match your résumé are at the top, each with an evidenced fit percent."
+            )
             n = _notify_user(session["user_id"])
             if n:
                 flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
@@ -395,11 +399,18 @@ def create_app(test_config: dict | None = None) -> Flask:
             if job.id in hidden:
                 continue
             result = qualify(profile, job)
-            card = {"job": job, "result": result, "misses": result.failed_must_haves}
+            card = {
+                "job": job,
+                "result": result,
+                "misses": result.failed_must_haves,
+                "fit": result.fit,
+            }
             if result.passed:
                 qualified.append(card)
             else:
                 long_shots.append(card)
+        qualified.sort(key=lambda c: (-c["fit"].percent, c["job"].title.lower()))
+        long_shots.sort(key=lambda c: (-c["fit"].percent, c["job"].title.lower()))
         return render_template(
             "jobs.html",
             qualified=qualified,
@@ -487,10 +498,24 @@ def create_app(test_config: dict | None = None) -> Flask:
             q=q,
             ecosystem=ecosystem,
         )
-        cards = [
-            {"job": j, "source": job_source(j), "mode": work_mode(j)}
-            for j in jobs
-        ]
+        profile = current_profile()
+        cards = []
+        for j in jobs:
+            card = {"job": j, "source": job_source(j), "mode": work_mode(j), "fit": None, "passed": None}
+            if profile is not None:
+                result = qualify(profile, j)
+                card["fit"] = result.fit
+                card["passed"] = result.passed
+                card["misses"] = result.failed_must_haves
+            cards.append(card)
+        if profile is not None:
+            cards.sort(
+                key=lambda c: (
+                    not c["passed"],
+                    -(c["fit"].percent if c["fit"] else 0),
+                    c["job"].title.lower(),
+                )
+            )
         title = market_label(region) if region else "IT vacancies"
         if ecosystem == "web3":
             title = "Web3 IT Vacancies" if not region else f"Web3 · {title}"
@@ -506,6 +531,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             region=region,
             mode=mode,
             ecosystem=ecosystem,
+            ranked=profile is not None,
         )
 
     @app.get("/vacancies/<job_id>")
@@ -559,11 +585,14 @@ def create_app(test_config: dict | None = None) -> Flask:
                 "source": job_source(job),
                 "result": result,
                 "status": statuses.get(job.id, ""),
+                "fit": result.fit,
             }
             if result.passed:
                 ready.append(row)
             else:
                 blocked.append(row)
+        ready.sort(key=lambda r: (-r["fit"].percent, r["job"].title.lower()))
+        blocked.sort(key=lambda r: (-r["fit"].percent, r["job"].title.lower()))
         return render_template("auto_apply.html", ready=ready, blocked=blocked, focus=focus)
 
     @app.post("/auto-apply")

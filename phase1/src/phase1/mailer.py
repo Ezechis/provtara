@@ -41,7 +41,9 @@ def qualified_digest(email: str, rows: list[dict], origin: str) -> tuple[str, st
     ]
     for row in rows:
         job = row["job"]
-        lines.append(f"- {job.title} at {job.company}")
+        fit = row.get("fit")
+        pct = f" ({fit.percent}% evidenced fit)" if fit is not None else ""
+        lines.append(f"- {job.title} at {job.company}{pct}")
         lines.append(f"  {origin}/vacancies/{job.id}")
         lines.append(f"  Apply on the official listing: {job.apply_url}")
         lines.append("")

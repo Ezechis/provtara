@@ -38,6 +38,7 @@
       {% if user_email %}
       <form class="rail-out" method="post" action="{{ url_for('logout') }}">
         <span>{{ user_email }}</span>
+        {% if confirmed %}<a href="{{ url_for('jobs') }}">Your matches</a>{% endif %}
         <a href="{{ url_for('account') }}">Account / alerts</a>
         <button type="submit" class="text-btn">Log out</button>
       </form>

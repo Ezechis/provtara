@@ -69,11 +69,31 @@ class GapRow:
 
 
 @dataclass(frozen=True)
+class FitScore:
+    """Honest fit 0–100. Must-haves dominate; keyword stuffing does not count."""
+
+    percent: int
+    must_met: int
+    must_total: int
+    nice_met: int
+    nice_total: int
+
+    @property
+    def band(self) -> str:
+        if self.percent >= 80:
+            return "high"
+        if self.percent >= 50:
+            return "mid"
+        return "low"
+
+
+@dataclass(frozen=True)
 class QualifyResult:
     passed: bool
     failed_must_haves: list[str]
     exceptions: list[str]
     gaps: list[GapRow]
+    fit: FitScore
 
 
 @dataclass(frozen=True)

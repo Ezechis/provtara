@@ -2,8 +2,13 @@
 {% block title %}{{ job.title }}{% endblock %}
 {% block body %}
 <p class="meta"><a href="{{ url_for('vacancies') }}">← Vacancies</a> · via {{ source }}</p>
-<h1>{{ job.title }}</h1>
-<p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+<div class="card-head">
+  <div>
+    <h1>{{ job.title }}</h1>
+    <p class="meta">{{ job.company }} · {% if job.remote %}Remote{% else %}{{ job.location }}{% endif %}</p>
+  </div>
+  {% if result %}{% with fit=result.fit %}{% include "_fit_stamp.html" %}{% endwith %}{% endif %}
+</div>
 <p>{{ job.description }}</p>
 <p class="actions">
   <a class="btn" href="{{ job.apply_url }}" target="_blank" rel="noopener">Apply directly on {{ source }}</a>

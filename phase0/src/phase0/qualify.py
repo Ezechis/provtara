@@ -7,6 +7,7 @@ import yaml
 
 from phase0.models import (
     Bullet,
+    FitScore,
     GapRow,
     GateFailed,
     Job,
@@ -15,6 +16,9 @@ from phase0.models import (
     Role,
     canon,
 )
+
+MUST_WEIGHT = 80
+NICE_WEIGHT = 20
 
 
 def profile_from_dict(data: dict) -> Profile:
@@ -148,6 +152,57 @@ def gap_table(profile: Profile, job: Job) -> list[GapRow]:
     return rows
 
 
+def _must_item_scores(profile: Profile, job: Job) -> list[float]:
+    scores: list[float] = []
+    for req in job.must_haves:
+        scores.append(1.0 if _evidence_for(profile, req) else 0.0)
+    if job.min_years:
+        need = float(job.min_years)
+        have = profile.years_experience
+        if have + 0.05 >= need:
+            scores.append(1.0)
+        else:
+            scores.append(min(1.0, max(0.0, have / need)))
+    if job.work_authorization_any_of:
+        allowed = {a.upper() for a in job.work_authorization_any_of}
+        have_auth = {a.upper() for a in profile.work_authorization}
+        ok = "ANY" in allowed or bool(allowed & have_auth)
+        scores.append(1.0 if ok else 0.0)
+    return scores
+
+
+def _nice_item_scores(profile: Profile, job: Job) -> list[float]:
+    return [1.0 if _evidence_for(profile, req) else 0.0 for req in job.nice_to_haves]
+
+
+def score_fit(profile: Profile, job: Job) -> FitScore:
+    """Percent of how far the evidenced profile covers this job.
+
+    Must-haves, years, and work authorization are 80% of the score.
+    Nice-to-haves are the remaining 20%. A skill with no tagged bullet
+    is 0 — listing it on the résumé is not enough. The pack gate is
+    still pass/fail; a high percent with a missing must-have is a long shot.
+    """
+    musts = _must_item_scores(profile, job)
+    nices = _nice_item_scores(profile, job)
+    if not musts and not nices:
+        percent = 0
+    elif not musts:
+        percent = round((sum(nices) / len(nices)) * 100)
+    else:
+        must_avg = sum(musts) / len(musts)
+        nice_avg = (sum(nices) / len(nices)) if nices else 1.0
+        percent = round(must_avg * MUST_WEIGHT + nice_avg * NICE_WEIGHT)
+    percent = max(0, min(100, percent))
+    return FitScore(
+        percent=percent,
+        must_met=sum(1 for s in musts if s >= 1.0),
+        must_total=len(musts),
+        nice_met=sum(1 for s in nices if s >= 1.0),
+        nice_total=len(nices),
+    )
+
+
 def qualify(
     profile: Profile,
     job: Job,
@@ -173,6 +228,7 @@ def qualify(
         failed_must_haves=failed,
         exceptions=exceptions,
         gaps=gaps,
+        fit=score_fit(profile, job),
     )
 
 

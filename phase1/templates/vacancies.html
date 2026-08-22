@@ -9,7 +9,7 @@
 {% endif %}
 <h1>{{ heading }}</h1>
 <p>IT jobs published from verified <a href="{{ url_for('boards') }}">boards</a>, plus career pages for African employers. Confirm the live opening before you submit.</p>
-<p class="muted">Apply directly on the official listing, or use Auto-apply to prepare a true pack first.</p>
+<p class="muted">Apply directly on the official listing, or use Auto-apply to prepare a true pack first.{% if ranked %} With a confirmed résumé, listings are sorted by evidenced fit percent — gate-pass roles first.{% endif %}</p>
 
 <form class="job-search" method="get" action="{{ url_for('vacancies') }}" role="search">
   {% if region %}<input type="hidden" name="region" value="{{ region }}">{% endif %}
@@ -37,10 +37,15 @@
 
 <div class="cards">
   {% for card in cards %}
-    <article class="card">
-      <p class="proof-mark">via {{ card.source }} · {{ card.mode }}</p>
-      <h2>{{ card.job.title }}</h2>
-      <p class="meta">{{ card.job.company }} · {{ card.job.location or ("Remote" if card.job.remote else "Location not listed") }}</p>
+    <article class="card{% if card.passed %} card-pass{% endif %}">
+      <div class="card-head">
+        <div>
+          <p class="meta">via {{ card.source }} · {{ card.mode }}{% if card.passed %} · gate pass{% elif card.fit %} · long shot{% endif %}</p>
+          <h2>{{ card.job.title }}</h2>
+          <p class="meta">{{ card.job.company }} · {{ card.job.location or ("Remote" if card.job.remote else "Location not listed") }}</p>
+        </div>
+        {% if card.fit %}{% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}{% endif %}
+      </div>
       <p class="actions">
         <a class="btn" href="{{ card.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
         <a class="btn secondary" href="{{ url_for('auto_apply', job=card.job.id) }}">Auto-apply</a>

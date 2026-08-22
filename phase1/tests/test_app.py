@@ -153,6 +153,40 @@ def test_auto_apply_skips_failed_gate(client):
     assert b"Kubernetes" not in yes.data
 
 
+def test_jobs_rank_by_evidenced_fit_percent(client):
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    r = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
+    body = r.get_data(as_text=True)
+    assert "Harbor Ledger" in body
+    assert "100 percent evidenced fit" in body
+    assert "84 percent evidenced fit" in body
+    assert "29 percent evidenced fit" in body
+    assert body.index("Harbor Ledger") < body.index("Quayline") < body.index("Northpeak")
+    assert body.index("100 percent evidenced fit") < body.index("84 percent evidenced fit")
+    assert body.index("84 percent evidenced fit") < body.index("29 percent evidenced fit")
+    assert 'href="/jobs"' in body
+    assert "Your matches" in body
+    detail = client.get("/jobs/yes-django-backend").get_data(as_text=True)
+    assert "100 percent evidenced fit" in detail
+    assert "Gate pass" in detail
+    near = client.get("/jobs/near-miss-k8s").get_data(as_text=True)
+    assert "84 percent evidenced fit" in near
+    assert "Gate failed" in near
+
+
+def test_vacancies_bump_qualified_after_resume(client):
+    public = client.get("/vacancies").get_data(as_text=True)
+    assert "percent evidenced fit" not in public
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
+    body = client.get("/vacancies").get_data(as_text=True)
+    assert "100 percent evidenced fit" in body
+    assert body.index("Harbor Ledger") < body.index("Northpeak Cloud")
+    assert "sorted by evidenced fit" in body.lower()
+
+
 def test_cannot_pack_failed_gate(client):
     _register_and_login(client)
     client.post("/upload/sample", follow_redirects=True)

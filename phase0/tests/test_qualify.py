@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from phase0.qualify import GateFailed, gap_table, load_job, load_profile, qualify
+from phase0.qualify import GateFailed, gap_table, load_job, load_profile, qualify, score_fit
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 PROFILE = FIXTURES / "profile.yaml"
@@ -74,3 +74,35 @@ def test_prepare_pack_refuses_failed_gate(profile):
     job = load_job(FIXTURES / "jobs" / "no-k8s-sre.yaml")
     with pytest.raises(GateFailed):
         prepare_pack(profile, job)
+
+
+def test_harbor_ledger_is_a_full_evidenced_fit(profile):
+    job = load_job(FIXTURES / "jobs" / "yes-django-backend.yaml")
+    fit = score_fit(profile, job)
+    assert fit.percent == 100
+    assert fit.must_met == fit.must_total
+    assert fit.nice_met == fit.nice_total
+    assert qualify(profile, job).fit.percent == 100
+
+
+def test_near_miss_scores_high_but_still_fails_the_gate(profile):
+    job = load_job(FIXTURES / "jobs" / "near-miss-k8s.yaml")
+    fit = score_fit(profile, job)
+    assert fit.percent == 84
+    assert qualify(profile, job).passed is False
+
+
+def test_sre_role_scores_low_without_k8s_go_or_us_auth(profile):
+    job = load_job(FIXTURES / "jobs" / "no-k8s-sre.yaml")
+    fit = score_fit(profile, job)
+    assert fit.percent == 29
+    assert fit.percent < 50
+
+
+def test_fit_percent_ignores_skill_name_without_bullet_evidence(profile):
+    from dataclasses import replace
+
+    job = load_job(FIXTURES / "jobs" / "near-miss-k8s.yaml")
+    padded = replace(profile, skills=profile.skills + ("Kubernetes",))
+    assert "kubernetes" in padded.skill_set
+    assert score_fit(padded, job).percent == score_fit(profile, job).percent
