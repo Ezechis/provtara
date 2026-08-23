@@ -13,7 +13,19 @@ First visit after 15 minutes idle can take about a minute (spin-up). Uploaded rÃ
 
 ## Lasting: Render free
 
-Already live. Git push to `main` on `Ezechis/provtara` redeploys. Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
+Already live. Push to `main` on `Ezechis/provtara` deploys automatically.
+
+GitHub Actions (`.github/workflows/deploy-render.yml`) runs tests, then tells Render to build that commit. That is the reliable trigger: Renderâ€™s own GitHub auto-deploy flag is on, but GitHub never delivered push events to this service (every prior deploy was a manual API call). Do not turn Auto-Deploy off in the dashboard unless you also keep this workflow.
+
+Secret required on the repo: `RENDER_API_KEY` (Render Account API key, not a short-lived CLI login). Set or rotate with:
+
+```
+gh secret set RENDER_API_KEY --repo Ezechis/provtara
+```
+
+Create a long-lived key at https://dashboard.render.com/u/settings#api-keys if the secret ever 401s.
+
+Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 
 ## Job sources (no API keys)
 
