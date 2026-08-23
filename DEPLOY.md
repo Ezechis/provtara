@@ -35,5 +35,9 @@ Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 | [Arbeitnow](https://www.arbeitnow.com) | job-board API |
 | [RemoteOK](https://remoteok.com) | `/api` |
 | [Jobicy](https://jobicy.com) | `/api/v2/remote-jobs` |
+| [Himalayas](https://himalayas.app) | jobs API |
+| [Hacker News Jobs](https://news.ycombinator.com/jobs) | `hnrss.org/jobs` |
+
+We Work Remotely is not a source. It sells JobCopilot auto-apply, and “Open employer form” must not dump the candidate onto another auto-apply board. Listings whose apply URL still points at weworkremotely.com or jobcopilot.com are dropped.
 
 IT-only filter. Dedupe by apply URL. **Apply directly** goes to that official URL. **Auto-apply** prepares a true pack for gate-pass jobs, then you open the same URL. Provtara does not log into an ATS or press Submit.

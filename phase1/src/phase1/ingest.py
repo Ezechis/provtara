@@ -8,6 +8,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import unescape
+from urllib.parse import urlparse
 
 from phase0.models import Job
 from phase0.qualify import job_from_dict
@@ -322,22 +323,6 @@ def _rss_items(raw: bytes) -> list[dict]:
     return out
 
 
-def job_from_wwr(item: dict) -> Job | None:
-    title = item.get("title") or ""
-    company = "Company"
-    if ": " in title:
-        company, title = title.split(": ", 1)
-    return _job(
-        source="wwr",
-        title=title.strip(),
-        company=company.strip(),
-        url=item.get("url") or "",
-        description=item.get("description") or "",
-        location="Remote",
-        remote=True,
-    )
-
-
 def job_from_hnjobs(item: dict) -> Job | None:
     return _job(
         source="hnjobs",
@@ -356,7 +341,6 @@ SOURCES = {
     "remoteok": "RemoteOK",
     "jobicy": "Jobicy",
     "himalayas": "Himalayas",
-    "wwr": "We Work Remotely",
     "hnjobs": "Hacker News Jobs",
 }
 
@@ -366,9 +350,17 @@ BOARD_HOMES = {
     "remoteok": "https://remoteok.com",
     "jobicy": "https://jobicy.com",
     "himalayas": "https://himalayas.app",
-    "wwr": "https://weworkremotely.com",
     "hnjobs": "https://news.ycombinator.com/jobs",
 }
+
+# Boards that already sell auto-apply / JobCopilot. Do not feed or re-route there.
+BLOCKED_SOURCES = frozenset({"wwr"})
+BLOCKED_APPLY_HOSTS = frozenset(
+    {
+        "weworkremotely.com",
+        "jobcopilot.com",
+    }
+)
 
 
 def job_source(job: Job) -> str:
@@ -376,10 +368,30 @@ def job_source(job: Job) -> str:
     return SOURCES.get(prefix, "Provtara")
 
 
+def apply_host_blocked(url: str) -> bool:
+    host = (urlparse(url or "").hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if host in BLOCKED_APPLY_HOSTS:
+        return True
+    return any(host.endswith("." + blocked) for blocked in BLOCKED_APPLY_HOSTS)
+
+
+def keep_listing(job: Job | None) -> bool:
+    if job is None:
+        return False
+    prefix = (job.id or "").split("-", 1)[0]
+    if prefix in BLOCKED_SOURCES:
+        return False
+    return not apply_host_blocked(job.apply_url)
+
+
 def merge_jobs(primary: list[Job], extra: list[Job]) -> list[Job]:
     seen: set[str] = set()
     out: list[Job] = []
     for job in [*primary, *extra]:
+        if not keep_listing(job):
+            continue
         key = (job.apply_url or job.id).rstrip("/").lower()
         if key in seen:
             continue
@@ -394,10 +406,9 @@ BOARD_URLS = {
     "remoteok": "https://remoteok.com/api",
     "jobicy": "https://jobicy.com/api/v2/remote-jobs?count=50&tag=software",
     "himalayas": "https://himalayas.app/jobs/api?limit=20",
-    "wwr": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "hnjobs": "https://hnrss.org/jobs",
 }
-RSS_BOARDS = {"wwr", "hnjobs"}
+RSS_BOARDS = {"hnjobs"}
 PER_BOARD_CAP = 40
 FETCH_TIMEOUT = 12
 
@@ -453,8 +464,7 @@ def _fetch_one(name: str, url: str) -> tuple[str, list[Job], str | None]:
     try:
         if name in RSS_BOARDS:
             items = _rss_items(_get_bytes(url))
-            mapper = job_from_wwr if name == "wwr" else job_from_hnjobs
-            batch = [j for j in (mapper(x) for x in items) if j is not None][:PER_BOARD_CAP]
+            batch = [j for j in (job_from_hnjobs(x) for x in items) if j is not None][:PER_BOARD_CAP]
             return name, batch, None
         payload = _get_json(url)
         batch = [j for j in _EXTRACTORS[name](payload) if j is not None][:PER_BOARD_CAP]
@@ -467,7 +477,7 @@ def fetch_free_boards() -> tuple[list[Job], dict[str, str]]:
     """Pull IT jobs from no-key public boards in parallel. Errors are per-source."""
     jobs: list[Job] = []
     errors: dict[str, str] = {}
-    with ThreadPoolExecutor(max_workers=7) as pool:
+    with ThreadPoolExecutor(max_workers=len(BOARD_URLS) or 1) as pool:
         futs = [pool.submit(_fetch_one, name, url) for name, url in BOARD_URLS.items()]
         for fut in as_completed(futs):
             name, batch, err = fut.result()

@@ -247,11 +247,11 @@ def hidden_ids(conn: sqlite3.Connection, user_id: int) -> set[str]:
 
 def save_listings(conn: sqlite3.Connection, jobs: list, source: str = "boards") -> int:
     from phase0.models import Job
-    from phase1.ingest import job_source
+    from phase1.ingest import job_source, keep_listing
 
     n = 0
     for job in jobs:
-        if not isinstance(job, Job):
+        if not isinstance(job, Job) or not keep_listing(job):
             continue
         origin = source if source != "boards" else job_source(job)
         payload = {
@@ -287,13 +287,17 @@ def save_listings(conn: sqlite3.Connection, jobs: list, source: str = "boards") 
 def load_listings(conn: sqlite3.Connection) -> list:
     from phase0.qualify import job_from_dict
 
+    from phase1.ingest import keep_listing
+
     rows = conn.execute("SELECT json FROM listings ORDER BY fetched_at DESC").fetchall()
     jobs = []
     for row in rows:
         try:
-            jobs.append(job_from_dict(json.loads(row["json"])))
+            job = job_from_dict(json.loads(row["json"]))
         except (KeyError, TypeError, json.JSONDecodeError):
             continue
+        if keep_listing(job):
+            jobs.append(job)
     return jobs
 
 
