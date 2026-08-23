@@ -1,0 +1,27 @@
+name: Refresh job boards
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wake Render and pull boards
+        run: |
+          set -euo pipefail
+          # Free Render sleeps after idle. This POST wakes it and refreshes
+          # listings if the last pull is older than 4 hours.
+          code=$(curl -sS -o /tmp/refresh.html -w "%{http_code}" \
+            --max-time 180 \
+            -L \
+            -X POST "https://provtara.onrender.com/jobs/refresh" \
+            -H "User-Agent: Provtara-board-refresh/1.0")
+          echo "HTTP ${code}"
+          case "$code" in
+            200|302|303) ;;
+            *) exit 1 ;;
+          esac

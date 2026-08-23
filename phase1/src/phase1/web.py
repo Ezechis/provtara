@@ -4,6 +4,7 @@ import os
 import secrets
 import sqlite3
 import threading
+import time
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
@@ -72,6 +73,7 @@ from phase1.store import (
     log_apply,
     mark_alert_sent,
     packs_this_month,
+    BOARD_REFRESH_SECONDS,
     refresh_is_stale,
     save_draft,
     save_listings,
@@ -283,10 +285,19 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     ingest_lock = threading.Lock()
 
+    def _pull_into(db_path: str) -> int:
+        fetched, _errors = fetch_free_boards()
+        conn = connect(db_path)
+        try:
+            init_db(conn)
+            return save_listings(conn, fetched)
+        finally:
+            conn.close()
+
     def maybe_ingest():
         if app.config.get("TESTING"):
             return
-        if listing_count(db()) > 0:
+        if listing_count(db()) > 0 and not refresh_is_stale(db()):
             return
         if not ingest_lock.acquire(blocking=False):
             return
@@ -294,13 +305,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         def work():
             try:
-                fetched, _errors = fetch_free_boards()
-                conn = connect(db_path)
-                try:
-                    init_db(conn)
-                    save_listings(conn, fetched)
-                finally:
-                    conn.close()
+                _pull_into(db_path)
             finally:
                 ingest_lock.release()
 
@@ -704,7 +709,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             flash("Live board pull is skipped in tests.")
             return redirect(safe_next(url_for("vacancies")))
         if listing_count(db()) > 0 and not refresh_is_stale(db()):
-            flash("Boards were pulled recently. Apply directly on a listing, or wait a few minutes to refresh.")
+            flash("Boards were pulled in the last 4 hours. The next automatic pull is on that schedule.")
             return redirect(safe_next(url_for("vacancies")))
         _n, _errors, msg = pull_boards()
         flash(msg)
@@ -1061,5 +1066,26 @@ def create_app(test_config: dict | None = None) -> Flask:
             "Card billing is not live on this workshop yet — you stay on Free limits until Paystack/Stripe is wired."
         )
         return redirect(url_for("account"))
+
+    def _board_refresh_loop():
+        while True:
+            time.sleep(BOARD_REFRESH_SECONDS)
+            if app.config.get("TESTING"):
+                continue
+            if not ingest_lock.acquire(blocking=False):
+                continue
+            try:
+                _pull_into(app.config["DATABASE"])
+            except Exception:
+                pass
+            finally:
+                ingest_lock.release()
+
+    if not app.config.get("TESTING"):
+        threading.Thread(
+            target=_board_refresh_loop,
+            daemon=True,
+            name="provtara-board-refresh",
+        ).start()
 
     return app

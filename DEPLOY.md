@@ -27,6 +27,8 @@ Create a long-lived key at https://dashboard.render.com/u/settings#api-keys if t
 
 Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 
+Job listings auto-refresh every **4 hours**: a visitor hitting a stale catalog triggers a background pull, the app also loops on that interval while it is awake, and GitHub Actions (`refresh-boards.yml`) POSTs `/jobs/refresh` on `0 */4 * * *` UTC so Render still updates after the free service sleeps. Manual Refresh on Vacancies uses the same 4-hour gate.
+
 ## Job sources (no API keys)
 
 | Board | What we pull |

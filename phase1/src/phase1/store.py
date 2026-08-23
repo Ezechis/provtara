@@ -313,7 +313,12 @@ def last_fetched_at(conn: sqlite3.Connection) -> str | None:
     return row["t"]
 
 
-def refresh_is_stale(conn: sqlite3.Connection, seconds: int = 900) -> bool:
+BOARD_REFRESH_SECONDS = 4 * 60 * 60
+
+
+def refresh_is_stale(conn: sqlite3.Connection, seconds: int | None = None) -> bool:
+    if seconds is None:
+        seconds = BOARD_REFRESH_SECONDS
     stamp = last_fetched_at(conn)
     if not stamp:
         return True
