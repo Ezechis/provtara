@@ -81,17 +81,102 @@ def is_it_role(title: str, description: str, tags: list[str] | None = None) -> b
     return any(p in blob for p in IT_POSITIVE)
 
 
+_NICE_SPLIT = re.compile(
+    r"(?:nice\s+to\s+have|nices?\s*[-:]|plus\s*:|our\s+stack\s+also|"
+    r"stack\s+(?:also\s+)?includes|technologies?\s+we\s+use|"
+    r"bonus(?:\s+points)?(?:\s+if)?)",
+    re.I,
+)
+_GO_LANG = re.compile(
+    r"(?<![A-Za-z])(?:golang|go\s*lang(?:uage)?|"
+    r"go\s+(?:developer|engineer|programmer|service|services|binary|module)s?)"
+    r"(?![A-Za-z])|\b(?:in|using|with|written\s+in)\s+go\b",
+    re.I,
+)
+
+
+def _skill_in_text(skill: str, text: str) -> bool:
+    if not text:
+        return False
+    if skill.lower() == "go":
+        return bool(_GO_LANG.search(text))
+    return bool(
+        re.search(r"(?<![A-Za-z0-9])" + re.escape(skill) + r"(?![A-Za-z0-9])", text, re.I)
+    )
+
+
 def _skills_from(text: str) -> list[str]:
     found: list[str] = []
     seen: set[str] = set()
     for skill in SKILL_CATALOG:
-        if re.search(r"(?<![A-Za-z0-9])" + re.escape(skill) + r"(?![A-Za-z0-9])", text, re.I):
-            key = skill.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            found.append(skill)
+        if not _skill_in_text(skill, text):
+            continue
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        found.append(skill)
     return found
+
+
+def _first_index(skill: str, text: str) -> int:
+    if skill.lower() == "go":
+        m = _GO_LANG.search(text or "")
+        return m.start() if m else 10**9
+    m = re.search(
+        r"(?<![A-Za-z0-9])" + re.escape(skill) + r"(?![A-Za-z0-9])",
+        text or "",
+        re.I,
+    )
+    return m.start() if m else 10**9
+
+
+def _core_and_tail(description: str) -> tuple[str, str]:
+    text = (description or "").strip()
+    split = _NICE_SPLIT.split(text, maxsplit=1)
+    head = split[0].strip()
+    marked_tail = split[1].strip() if len(split) > 1 else ""
+    sentences = re.split(r"(?<=[.!?])\s+", head) if head else []
+    core = " ".join(sentences[:2]).strip() or head
+    leftover = " ".join(sentences[2:]).strip()
+    tail = " ".join(p for p in (leftover, marked_tail) if p)
+    return core, tail
+
+
+def listing_stack(title: str, description: str) -> tuple[list[str], list[str]]:
+    """Must-haves from the role (title + opening), not catalog order."""
+    title = title or ""
+    description = description or ""
+    core, tail = _core_and_tail(description)
+    title_skills = _skills_from(title)
+    core_skills = _skills_from(core)
+    must: list[str] = []
+    seen: set[str] = set()
+    for skill in title_skills + sorted(core_skills, key=lambda s: _first_index(s, f"{title}\n{core}")):
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        must.append(skill)
+        if len(must) >= 4:
+            break
+    if not must:
+        ordered = sorted(
+            _skills_from(f"{title}\n{description}"),
+            key=lambda s: _first_index(s, f"{title}\n{description}"),
+        )
+        must = ordered[:4]
+        seen = {s.lower() for s in must}
+    rest: list[str] = []
+    for skill in _skills_from(tail) + _skills_from(f"{title}\n{description}"):
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        rest.append(skill)
+        if len(rest) >= 4:
+            break
+    return must, rest
 
 
 def _min_years(text: str) -> int:
@@ -121,11 +206,9 @@ def _job(
     desc = strip_html(description)[:4000]
     if not is_it_role(title, desc):
         return None
-    skills = _skills_from(f"{title}\n{desc}")
-    if not skills:
+    must, nice = listing_stack(title, desc)
+    if not must and not nice:
         return None
-    must = skills[:5]
-    nice = skills[5:9]
     hook = desc.split(".")[0].strip()[:180] or f"{company} is hiring for {title}."
     return job_from_dict(
         {

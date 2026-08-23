@@ -376,6 +376,19 @@ textarea.short { min-height: 5.5rem; }
 }
 .card-head h1, .card-head h2 { margin-top: 0; }
 .card-pass { border-left: 3px solid var(--pass); }
+button.card-pick {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.pick-hint {
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+  color: var(--spot);
+}
 .fit {
   flex: 0 0 auto;
   text-align: right;

@@ -202,6 +202,33 @@ def split_optional_lines(raw: str) -> list[str]:
     return [p for p in parts if p]
 
 
+def skills_on_resume(
+    listed: list[str],
+    raw_text: str,
+    experience: list | None = None,
+) -> list[str]:
+    from phase0.models import canon
+
+    blob = raw_text or ""
+    tagset: set[str] = set()
+    for role in experience or []:
+        for bullet in role.get("bullets") or []:
+            blob += "\n" + (bullet.get("text") or "")
+            for tag in bullet.get("tags") or []:
+                tagset.add(canon(tag))
+    named = {canon(s) for s in _skills_in(blob)}
+    keep: list[str] = []
+    seen: set[str] = set()
+    for skill in listed or []:
+        key = canon(skill)
+        if not key or key in seen:
+            continue
+        if key in tagset or key in named:
+            seen.add(key)
+            keep.append(skill)
+    return keep
+
+
 def grounded_skills(listed: list[str], bullets: list[dict]) -> list[str]:
     from phase0.models import canon
 
@@ -376,7 +403,17 @@ def classify_credential(line: str) -> str | None:
         return "edu"
     if certish and not schoolish:
         return "cert"
-    if schoolish:
+    if schoolish and certish:
+        # Line contains both degree and certification markers.
+        # If "and" separates them, treat as separate categories later.
+        # Otherwise, pick the more specific match.
+        if "and" in text.lower():
+            return None  # Let partition_credentials handle the split
+        # No "and": pick the longer/more specific match
+        deg_matches = _DEGREE.findall(text)
+        cert_matches = _PRO_CERT.findall(text)
+        if len(cert_matches) > len(deg_matches):
+            return "cert"
         return "edu"
     if re.search(r"\bcertified\b", text, re.I):
         return "cert"
@@ -387,10 +424,11 @@ def partition_credentials(education: list[str], certifications: list[str]) -> tu
     edu: list[str] = []
     cert: list[str] = []
     seen: set[str] = set()
+    connectors = {"and", "also", "as well", "plus", "including"}
     for origin, bucket in ((education, "edu"), (certifications, "cert")):
         for line in origin or []:
             key = re.sub(r"\s+", " ", line).strip().lower()
-            if not key or key in seen:
+            if not key or key in seen or key in connectors:
                 continue
             seen.add(key)
             kind = classify_credential(line) or bucket

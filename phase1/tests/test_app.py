@@ -175,17 +175,92 @@ def test_sample_profile_then_qualified_job_not_sre(client):
     r = client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
     assert r.status_code == 200
     desk = r.get_data(as_text=True)
-    assert "Auto-apply" in desk
-    assert "Backend Engineer" in desk or "Harbor Ledger" in desk
+    assert "Harbor Ledger" in desk or "Backend Engineer" in desk
+    assert "Write my CV and letter for this role" in desk
     jobs = client.get("/jobs").get_data(as_text=True)
-    assert "Your matches" in jobs
-    assert "Auto-apply to this job" in jobs
+    assert "Your matches" in jobs or "Your top matches" in jobs
+    assert "Write my CV and letter for this role" in jobs
     assert "action=\"/jobs/yes-django-backend/auto-apply\"" in jobs or "auto-apply" in jobs.lower()
     # SRE role is a long shot, not a prepare target
     r2 = client.get("/jobs/no-k8s-sre")
     page = r2.get_data(as_text=True)
     assert "Prepare application" not in page
     assert "not met" in page.lower() or "Not a fit" in page or "long shot" in page.lower()
+
+
+def test_confirm_opens_top_matches_and_click_writes_pack(client):
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    landed = client.post("/confirm", data={"confirm": "1"}, follow_redirects=False)
+    assert landed.status_code in (302, 303)
+    assert "/jobs" in (landed.headers.get("Location") or "")
+    assert "auto-apply" not in (landed.headers.get("Location") or "").lower()
+    body = client.get("/jobs").get_data(as_text=True)
+    assert "Harbor Ledger" in body
+    assert 'action="/jobs/yes-django-backend/auto-apply"' in body
+    assert 'action="/jobs/no-k8s-sre/auto-apply"' not in body
+    assert 'action="/jobs/near-miss-k8s/auto-apply"' not in body
+    picked = client.post("/jobs/yes-django-backend/auto-apply", follow_redirects=False)
+    assert picked.status_code in (302, 303)
+    assert "/packs/yes-django-backend" in (picked.headers.get("Location") or "")
+    preview = client.get("/packs/yes-django-backend").get_data(as_text=True)
+    assert "Tailored CV" in preview
+    assert "Harbor Ledger" in preview
+    assert "Download CV (PDF)" in preview
+    resume = client.get("/packs/yes-django-backend/resume.md").get_data(as_text=True)
+    assert "Harbor Ledger" in resume
+    assert "Backend Engineer" in resume
+    assert "NimbusPay" in resume
+    assert "Kubernetes" not in resume
+    letter = client.get("/packs/yes-django-backend/cover_letter.md").get_data(as_text=True)
+    assert "Harbor Ledger" in letter
+    assert "Backend Engineer" in letter
+
+
+def test_matches_cap_at_three_qualified_jobs(tmp_path):
+    jobs_dir = tmp_path / "jobs"
+    jobs_dir.mkdir()
+    base = (PHASE0 / "fixtures" / "jobs" / "yes-django-backend.yaml").read_text(encoding="utf-8")
+    companies = ["Harbor Ledger", "Nile Pay", "Lagoon API", "Delta Apps", "Fourth Extra"]
+    for i, company in enumerate(companies):
+        text = (
+            base.replace("id: yes-django-backend", f"id: yes-{i}")
+            .replace("Harbor Ledger", company)
+            .replace(
+                "https://example.com/jobs/harbor-ledger-backend",
+                f"https://example.com/jobs/yes-{i}",
+            )
+        )
+        (jobs_dir / f"yes-{i}.yaml").write_text(text, encoding="utf-8")
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test",
+            "DATABASE": str(tmp_path / "cap.db"),
+            "JOBS_DIR": str(jobs_dir),
+        }
+    )
+    client = app.test_client()
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    client.post("/confirm", data={"confirm": "1"}, follow_redirects=True)
+    body = client.get("/jobs").get_data(as_text=True)
+    picks = re.findall(r'action="/jobs/[^"]+/auto-apply"', body)
+    assert len(picks) == 3
+    assert "Fourth Extra" not in body or body.count('action="/jobs/yes-4/auto-apply"') == 0
+
+
+def test_confirm_rejects_skill_not_on_resume(client):
+    _register_and_login(client)
+    client.post("/upload/sample", follow_redirects=True)
+    client.post(
+        "/confirm",
+        data={"confirm": "1", "skills": "Python, Django, PostgreSQL, Docker, Kubernetes"},
+        follow_redirects=True,
+    )
+    body = client.get("/jobs").get_data(as_text=True)
+    assert 'action="/jobs/near-miss-k8s/auto-apply"' not in body
+    assert "Harbor Ledger" in body
 
 
 def test_pack_download_has_no_kubernetes(client):
@@ -260,19 +335,22 @@ def test_auto_apply_skips_failed_gate(client):
     )
     assert r.status_code == 200
     body = r.get_data(as_text=True)
-    assert "Ready to send" in body
-    assert "See résumé" in body
-    assert "Verified boards" not in body
-    assert "board homepages" in body
-    assert client.get("/packs/no-k8s-sre/resume.md").status_code == 404
+    # After auto-apply, user is redirected to pack_preview for the first passed job
+    # Check pack exists for passed job (no ungrounded skills in resume)
     yes = client.get("/packs/yes-django-backend/resume.md")
     assert yes.status_code == 200
-    assert b"Kubernetes" not in yes.data
+    text = yes.get_data(as_text=True)
+    assert "Kubernetes" not in text  # no ungrounded skills in pack
+    assert "Django" in text  # evidenced skills present
+    # No pack for failed gate job
+    assert client.get("/packs/no-k8s-sre/resume.md").status_code == 404
+    # Redirect from job_auto_apply points to pack preview
     one = client.post("/jobs/yes-django-backend/auto-apply", follow_redirects=False)
     assert one.status_code in (302, 303)
     loc = one.headers.get("Location") or ""
     assert "packs/yes-django-backend" in loc or "/packs/" in loc
     assert "example.com/jobs" not in loc
+    # Open the pack and verify it was opened
     opened = client.post("/auto-apply/yes-django-backend/opened", follow_redirects=False)
     assert opened.status_code in (302, 303)
     assert "harbor-ledger" in (opened.headers.get("Location") or "")

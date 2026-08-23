@@ -47,13 +47,16 @@
         {% if card.fit %}{% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}{% endif %}
       </div>
       <div class="actions">
-        {% if confirmed %}
+        {% if confirmed and card.passed %}
           <form method="post" action="{{ url_for('job_auto_apply', job_id=card.job.id) }}">
-            <button class="btn" type="submit">Auto-apply to this job</button>
+            <button class="btn" type="submit">Write CV and letter</button>
           </form>
           <a href="{{ url_for('vacancy_detail', job_id=card.job.id) }}">Details</a>
+        {% elif confirmed %}
+          <a class="btn secondary" href="{{ url_for('job_detail', job_id=card.job.id) }}">See gaps</a>
+          <a href="{{ url_for('vacancy_detail', job_id=card.job.id) }}">Details</a>
         {% else %}
-          <a class="btn" href="{{ url_for('auto_apply', job=card.job.id) }}">Auto-apply</a>
+          <a class="btn" href="{{ url_for('jobs') }}">Use Auto-apply</a>
           <a class="btn secondary" href="{{ card.job.apply_url }}" target="_blank" rel="noopener">Apply directly</a>
           <a href="{{ url_for('vacancy_detail', job_id=card.job.id) }}">Details</a>
         {% endif %}

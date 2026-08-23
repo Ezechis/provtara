@@ -99,10 +99,31 @@ def test_sre_role_scores_low_without_k8s_go_or_us_auth(profile):
     assert fit.percent < 50
 
 
-def test_fit_percent_ignores_skill_name_without_bullet_evidence(profile):
+def test_confirmed_skill_counts_without_bullet_tag(profile):
+    from dataclasses import replace
+
+    job = load_job(FIXTURES / "jobs" / "yes-django-backend.yaml")
+    new_roles = []
+    for role in profile.experience:
+        bullets = tuple(
+            replace(b, tags=tuple(t for t in b.tags if t.lower() != "python"))
+            for b in role.bullets
+        )
+        new_roles.append(replace(role, bullets=bullets))
+    stripped = replace(profile, experience=tuple(new_roles))
+    assert "python" in stripped.skill_set
+    result = qualify(stripped, job)
+    python = next(r for r in result.gaps if r.requirement == "Python")
+    assert python.verdict == "met"
+    assert result.passed is True
+
+
+def test_skill_absent_from_resume_does_not_count(profile):
     from dataclasses import replace
 
     job = load_job(FIXTURES / "jobs" / "near-miss-k8s.yaml")
+    assert "kubernetes" not in profile.skill_set
+    assert qualify(profile, job).passed is False
     padded = replace(profile, skills=profile.skills + ("Kubernetes",))
     assert "kubernetes" in padded.skill_set
-    assert score_fit(padded, job).percent == score_fit(profile, job).percent
+    assert qualify(padded, job).passed is True

@@ -38,6 +38,47 @@ def test_map_remotive_software_job():
     assert "Kubernetes" not in job.must_haves or "django" in job.description.lower()
 
 
+def test_live_listing_uses_role_skills_not_catalog_order():
+    item = {
+        "id": 100,
+        "url": "https://example.com/jobs/100",
+        "title": "Backend Engineer",
+        "company_name": "Acme",
+        "category": "software-dev",
+        "description": (
+            "We are hiring a Backend Engineer. You will work with Python and Django. "
+            "Our stack also includes AWS, Java, Kubernetes, Terraform, Kafka, Docker, "
+            "PostgreSQL, Git, and Linux. Nice to have: TensorFlow, FastAPI. 3+ years."
+        ),
+    }
+    job = job_from_remotive(item)
+    assert job is not None
+    assert "Python" in job.must_haves
+    assert "Django" in job.must_haves
+    assert "Kubernetes" not in job.must_haves
+    assert "TensorFlow" not in job.must_haves
+    assert "FastAPI" not in job.must_haves
+
+
+def test_english_go_is_not_a_must_have():
+    item = {
+        "id": 101,
+        "url": "https://example.com/jobs/101",
+        "title": "Backend Engineer",
+        "company_name": "Acme",
+        "category": "software-dev",
+        "description": (
+            "<p>You will go to production with Python and Django. "
+            "Docker and PostgreSQL.</p>"
+        ),
+    }
+    job = job_from_remotive(item)
+    assert job is not None
+    assert "Go" not in job.must_haves
+    assert "Golang" not in job.must_haves
+    assert "Python" in job.must_haves or "Django" in job.must_haves
+
+
 def test_map_remotive_skips_design_category():
     item = {
         "id": 2,

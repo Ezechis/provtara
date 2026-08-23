@@ -120,11 +120,14 @@ def load_job(path: Path | str) -> Job:
 def _evidence_for(profile: Profile, requirement: str) -> list[str]:
     want = canon(requirement)
     hits: list[str] = []
+    for role in profile.experience:
+        for bullet in role.bullets:
+            if want in {canon(t) for t in bullet.tags}:
+                hits.append(bullet.id)
+    if hits:
+        return hits
     if want in profile.skill_set:
-        for role in profile.experience:
-            for bullet in role.bullets:
-                if want in {canon(t) for t in bullet.tags}:
-                    hits.append(bullet.id)
+        return ["résumé skills"]
     return hits
 
 

@@ -45,6 +45,7 @@ from phase1.parse import (
     extract_upload,
     normalize_career_start,
     propose_from_text,
+    skills_on_resume,
     split_optional_lines,
 )
 from phase1.mailer import qualified_digest, reset_message, send_mail, smtp_ready
@@ -494,11 +495,25 @@ def create_app(test_config: dict | None = None) -> Flask:
                 draft["work_authorization"] = [auth_raw]
             else:
                 draft["work_authorization"] = []
+            # Compute auth_location display value consistent with confirm_view()
+            from phase0.geo import auth_location_display, looks_like_place
+            temp_data = dict(draft)
+            temp_data["location"] = draft.get("location") or ""
+            auth_loc = auth_location_display(temp_data)
+            if auth_loc:
+                draft["auth_location"] = auth_loc
+            else:
+                draft["auth_location"] = ", ".join(
+                    country_label(c) for c in (draft.get("work_authorization") or []) if country_label(c)
+                ) or ""
             if loc:
                 draft["location"] = loc
             if "skills" in request.form:
                 raw_skills = (request.form.get("skills") or "").replace("\n", ",")
-                draft["skills"] = [s.strip() for s in raw_skills.split(",") if s.strip()]
+                listed = [s.strip() for s in raw_skills.split(",") if s.strip()]
+                draft["skills"] = skills_on_resume(
+                    listed, raw_text, draft.get("experience") or []
+                )
             draft["education"] = split_optional_lines(request.form.get("education") or "")
             draft["certifications"] = split_optional_lines(request.form.get("certifications") or "")
             try:
@@ -509,12 +524,12 @@ def create_app(test_config: dict | None = None) -> Flask:
             save_profile(db(), session["user_id"], draft, raw_text)
             clear_draft(db(), session["user_id"])
             flash(
-                "Profile confirmed. Jobs that match your résumé are at the top, each with an evidenced fit percent."
+                "Pick one of these roles. We will write a CV and letter from your résumé. Nothing invented."
             )
             n = _notify_user(session["user_id"])
             if n:
                 flash(f"Queued {n} job alert(s) for roles that already pass your gate.")
-            return redirect(url_for("auto_apply"))
+            return redirect(url_for("jobs"))
         return render_template("confirm.html", draft=confirm_view(draft))
 
     @app.get("/jobs")
@@ -546,9 +561,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         long_shots.sort(key=lambda c: (-c["fit"].percent, c["job"].title.lower()))
         return render_template(
             "jobs.html",
-            qualified=qualified,
-            long_shots=long_shots,
+            qualified=qualified[:3],
+            long_shots=long_shots[:3],
             ingested_count=len(ingested),
+            qualified_total=len(qualified),
         )
 
     @app.get("/jobs/<job_id>")
@@ -761,6 +777,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         batch = pack_budget(plan, packs_this_month(db(), session["user_id"]))
         prepared = 0
         skipped = 0
+        first_prepared_job_id = None
         for job_id in selected:
             job = get_job(app.config["JOBS_DIR"], job_id, ingested_jobs())
             if job is None:
@@ -789,18 +806,21 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
             log_apply(db(), session["user_id"], job.id, "prepared")
             prepared += 1
+            if first_prepared_job_id is None:
+                first_prepared_job_id = job.id
             if prepared >= batch:
                 break
         if prepared:
             flash(
                 f"Prepared {prepared} application(s). "
-                "Download the résumé and letter for each job, then continue to that job’s own form and submit there. "
-                "Provtara cannot press Submit on the employer’s site."
+                "Download the résumé and letter for each job, then continue to that job's own form and submit there. "
+                "Provtara cannot press Submit on the employer's site."
             )
+            return redirect(url_for("pack_preview", job_id=first_prepared_job_id))
         else:
             flash(
                 f"No applications prepared. Skipped {skipped} "
-                "(missing must-haves, or this plan’s pack limit is used up)."
+                "(missing must-haves, or this plan's pack limit is used up)."
             )
         return redirect(url_for("auto_apply", queue="1"))
 
@@ -838,7 +858,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "\n".join(gaps) + "\n",
         )
         log_apply(db(), session["user_id"], job.id, "prepared")
-        flash("Auto-apply prepared this job’s résumé and letter. Review them here — we did not send you to the job board.")
+        flash("Your tailored CV and letter for this vacancy. Review them here — we did not send the application.")
         return redirect(url_for("pack_preview", job_id=job.id))
 
     @app.post("/auto-apply/<job_id>/opened")

@@ -1,41 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Your matches{% endblock %}
 {% block body %}
-<h1>Your matches</h1>
-<p>Ranked by evidenced fit. Use <strong>Auto-apply to this job</strong> to prepare a tailored résumé and letter here. That does not open the job board. You submit on the employer form only when you choose to.</p>
+<h1>Your top matches</h1>
+<p>Click the role you want. We write a CV and cover letter from the résumé you confirmed, aimed at that title. You review it here, download PDF or Word, then open the employer form yourself.</p>
 <form method="post" action="{{ url_for('jobs_refresh') }}">
   <input type="hidden" name="next" value="{{ url_for('jobs') }}">
   <button class="btn secondary" type="submit">Refresh jobs</button>
-  <span class="meta">{{ ingested_count }} live listings · {{ qualified|length }} gate pass · {{ (qualified|length) + (long_shots|length) }} shown</span>
+  <span class="meta">{{ ingested_count }} live listings · {{ qualified_total }} gate pass · showing {{ qualified|length }}</span>
 </form>
 {% if qualified %}
-<h2>Best matches — {{ qualified|length }}</h2>
+<h2>Pick one — {{ qualified|length }} of {{ qualified_total }}</h2>
 <div class="cards">
   {% for card in qualified %}
-    <article class="card card-pass">
-      <div class="card-head">
-        <div>
-          <h2>{{ card.job.title }}</h2>
-          <p class="meta">{{ card.job.company }} · {% if card.job.remote %}Remote{% else %}{{ card.job.location }}{% endif %}</p>
+    <form method="post" action="{{ url_for('job_auto_apply', job_id=card.job.id) }}">
+      <button class="card card-pass card-pick" type="submit">
+        <div class="card-head">
+          <div>
+            <h2>{{ card.job.title }}</h2>
+            <p class="meta">{{ card.job.company }} · {% if card.job.remote %}Remote{% else %}{{ card.job.location }}{% endif %}</p>
+          </div>
+          {% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}
         </div>
-        {% with fit=card.fit %}{% include "_fit_stamp.html" %}{% endwith %}
-      </div>
-      <div class="actions">
-        <form method="post" action="{{ url_for('job_auto_apply', job_id=card.job.id) }}">
-          <button class="btn" type="submit">Auto-apply to this job</button>
-        </form>
-        <a href="{{ url_for('job_detail', job_id=card.job.id) }}">Details</a>
-      </div>
-    </article>
+        <p class="pick-hint">Write my CV and letter for this role</p>
+      </button>
+    </form>
   {% endfor %}
 </div>
-{% endif %}
-<h2>{% if qualified %}Also ranked{% else %}Closest jobs{% endif %} — {{ long_shots|length }}</h2>
-{% if not qualified %}
-<p>None passed every must-have. These still have a fit percent so you can see how close you are.</p>
 {% else %}
-<p class="muted">Missing a must-have. Percent is closeness. No tailored pack unless you name the gap in the letter — it still will not go on the résumé.</p>
+<p>No current listing matches your résumé closely enough to write a pack. We will not invent the missing skills.</p>
 {% endif %}
+{% if long_shots %}
+<h2>Not a match — we will not write a pack</h2>
+<p class="muted">Closest listings. Missing a must-have, so there is no tailored CV for these.</p>
 <div class="cards">
   {% for card in long_shots %}
     <article class="card">
@@ -53,7 +49,9 @@
     </article>
   {% endfor %}
 </div>
+{% endif %}
 {% if not qualified and not long_shots %}
 <p>No jobs loaded yet. Refresh, or open IT vacancies on the left.</p>
 {% endif %}
+<p class="meta"><a href="{{ url_for('vacancies') }}">Browse all vacancies</a></p>
 {% endblock %}

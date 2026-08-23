@@ -186,6 +186,27 @@ Python, Django, PostgreSQL, Docker, SQL, Excel
         assert need in skills
 
 
+def test_skills_on_resume_keep_listed_and_tagged_drop_inventions():
+    from phase1.parse import skills_on_resume
+
+    experience = [
+        {
+            "bullets": [
+                {"text": "Shipped Django APIs on PostgreSQL.", "tags": ["Django", "PostgreSQL"]},
+            ]
+        }
+    ]
+    raw = "Jordan Hale\nSKILLS\nPython, Django, PostgreSQL\n"
+    kept = skills_on_resume(
+        ["Python", "Django", "PostgreSQL", "Kubernetes"],
+        raw,
+        experience,
+    )
+    assert "Kubernetes" not in kept
+    assert "Python" in kept
+    assert "Django" in kept
+
+
 def test_grounded_skills_drop_unevidenced_tokens():
     bullets = [
         {"text": "Shipped Django APIs on PostgreSQL.", "tags": ["Django", "PostgreSQL"]},

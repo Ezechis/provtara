@@ -15,7 +15,7 @@
       <a class="mark" href="{{ url_for('landing') }}">Provtara</a>
       <p class="mark-sub">IT jobs. Real skills. Nothing invented.</p>
       <nav class="rail-actions" aria-label="Apply">
-        <a href="{{ url_for('auto_apply') }}">Auto-Apply</a>
+        <a href="{{ url_for('jobs') if confirmed else url_for('auto_apply') }}">Auto-Apply</a>
         <a href="{{ url_for('upload') }}">Upload Your Resume</a>
       </nav>
       <p class="rail-meta"><a href="{{ url_for('pricing') }}">{{ current_plan.label }} · Pricing</a></p>
