@@ -323,16 +323,91 @@ def _rss_items(raw: bytes) -> list[dict]:
     return out
 
 
-def job_from_hnjobs(item: dict) -> Job | None:
+def job_from_nomads(item: dict) -> Job | None:
     return _job(
-        source="hnjobs",
+        source="workingnomads",
         title=item.get("title") or "",
-        company=(item.get("title") or "Hiring company").split(" is hiring")[0][:80],
-        url=item.get("url") or "",
-        description=item.get("description") or item.get("title") or "",
-        location="Remote",
+        company=item.get("company_name") or "",
+        url=item.get("url") or item.get("apply_url") or "",
+        description=item.get("description") or "",
+        location=item.get("location") or "Remote",
         remote=True,
     )
+
+
+def job_from_muse(item: dict) -> Job | None:
+    cats = item.get("categories") or []
+    cat_blob = " ".join(
+        (c.get("name") if isinstance(c, dict) else str(c)) for c in (cats if isinstance(cats, list) else [])
+    )
+    title = item.get("name") or item.get("title") or ""
+    desc = item.get("contents") or item.get("description") or ""
+    if not is_it_role(title, f"{desc} {cat_blob}"):
+        return None
+    company = item.get("company") or {}
+    refs = item.get("refs") or {}
+    locs = item.get("locations") or []
+    names = []
+    for loc in locs if isinstance(locs, list) else []:
+        if isinstance(loc, dict):
+            names.append(loc.get("name") or "")
+        elif loc:
+            names.append(str(loc))
+    location = ", ".join(n for n in names if n) or "Remote"
+    company_name = company.get("name") if isinstance(company, dict) else ""
+    url = ""
+    if isinstance(refs, dict):
+        url = refs.get("landing_page") or refs.get("external") or ""
+    return _job(
+        source="themuse",
+        title=title,
+        company=company_name or "",
+        url=url,
+        description=desc,
+        location=location,
+        remote="remote" in location.lower() or "anywhere" in location.lower(),
+    )
+
+
+def job_from_feed(source: str, item: dict) -> Job | None:
+    title = (item.get("title") or "").strip()
+    url = (item.get("url") or "").strip()
+    desc = item.get("description") or title
+    company = "Company"
+    location = "Remote"
+    if source == "hnjobs":
+        company = title.split(" is hiring")[0][:80] if title else "Hiring company"
+    elif source == "pythonjobs" and ", " in title:
+        title, company = title.rsplit(", ", 1)
+        title, company = title.strip(), company.strip()
+    elif source == "berlinjobs":
+        location = "Berlin"
+        if " // " in title:
+            title, company = title.split(" // ", 1)
+            title, company = title.strip(), company.strip()
+    elif source == "larajobs":
+        parts = [p.strip() for p in title.split(",") if p.strip()]
+        if len(parts) >= 2:
+            title, company = parts[0], parts[1]
+    elif source == "fossjobs":
+        marker = " at "
+        if marker in title.lower():
+            idx = title.lower().rfind(marker)
+            company = title[idx + len(marker) :].strip() or company
+            title = title[:idx].strip() or title
+    return _job(
+        source=source,
+        title=title,
+        company=company[:80],
+        url=url,
+        description=desc,
+        location=location,
+        remote=location.lower() in {"remote", "worldwide"} or "remote" in title.lower(),
+    )
+
+
+def job_from_hnjobs(item: dict) -> Job | None:
+    return job_from_feed("hnjobs", item)
 
 
 SOURCES = {
@@ -342,6 +417,12 @@ SOURCES = {
     "jobicy": "Jobicy",
     "himalayas": "Himalayas",
     "hnjobs": "Hacker News Jobs",
+    "workingnomads": "Working Nomads",
+    "themuse": "The Muse",
+    "pythonjobs": "Python.org Jobs",
+    "fossjobs": "Fossjobs",
+    "larajobs": "LaraJobs",
+    "berlinjobs": "Berlin Startup Jobs",
 }
 
 BOARD_HOMES = {
@@ -351,14 +432,21 @@ BOARD_HOMES = {
     "jobicy": "https://jobicy.com",
     "himalayas": "https://himalayas.app",
     "hnjobs": "https://news.ycombinator.com/jobs",
+    "workingnomads": "https://www.workingnomads.com",
+    "themuse": "https://www.themuse.com",
+    "pythonjobs": "https://www.python.org/jobs/",
+    "fossjobs": "https://www.fossjobs.net",
+    "larajobs": "https://larajobs.com",
+    "berlinjobs": "https://berlinstartupjobs.com",
 }
 
 # Boards that already sell auto-apply / JobCopilot. Do not feed or re-route there.
-BLOCKED_SOURCES = frozenset({"wwr"})
+BLOCKED_SOURCES = frozenset({"wwr", "4dayweek"})
 BLOCKED_APPLY_HOSTS = frozenset(
     {
         "weworkremotely.com",
         "jobcopilot.com",
+        "4dayweek.io",
     }
 )
 
@@ -407,8 +495,14 @@ BOARD_URLS = {
     "jobicy": "https://jobicy.com/api/v2/remote-jobs?count=50&tag=software",
     "himalayas": "https://himalayas.app/jobs/api?limit=20",
     "hnjobs": "https://hnrss.org/jobs",
+    "workingnomads": "https://www.workingnomads.co/api/exposed_jobs/",
+    "themuse": "https://www.themuse.com/api/public/jobs?page=1&category=Software%20Engineering",
+    "pythonjobs": "https://www.python.org/jobs/feed/rss/",
+    "fossjobs": "https://www.fossjobs.net/rss/all/",
+    "larajobs": "https://larajobs.com/feed",
+    "berlinjobs": "https://berlinstartupjobs.com/feed/",
 }
-RSS_BOARDS = {"hnjobs"}
+RSS_BOARDS = {"hnjobs", "pythonjobs", "fossjobs", "larajobs", "berlinjobs"}
 PER_BOARD_CAP = 40
 FETCH_TIMEOUT = 12
 
@@ -451,12 +545,24 @@ def _extract_himalayas(payload):
     return [job_from_himalayas(x) for x in items or [] if isinstance(x, dict)]
 
 
+def _extract_nomads(payload):
+    items = payload if isinstance(payload, list) else payload.get("jobs", []) if isinstance(payload, dict) else []
+    return [job_from_nomads(x) for x in items if isinstance(x, dict)]
+
+
+def _extract_muse(payload):
+    items = payload.get("results", []) if isinstance(payload, dict) else []
+    return [job_from_muse(x) for x in items if isinstance(x, dict)]
+
+
 _EXTRACTORS = {
     "remotive": _extract_remotive,
     "arbeitnow": _extract_arbeitnow,
     "remoteok": _extract_remoteok,
     "jobicy": _extract_jobicy,
     "himalayas": _extract_himalayas,
+    "workingnomads": _extract_nomads,
+    "themuse": _extract_muse,
 }
 
 
@@ -464,7 +570,7 @@ def _fetch_one(name: str, url: str) -> tuple[str, list[Job], str | None]:
     try:
         if name in RSS_BOARDS:
             items = _rss_items(_get_bytes(url))
-            batch = [j for j in (job_from_hnjobs(x) for x in items) if j is not None][:PER_BOARD_CAP]
+            batch = [j for j in (job_from_feed(name, x) for x in items) if j is not None][:PER_BOARD_CAP]
             return name, batch, None
         payload = _get_json(url)
         batch = [j for j in _EXTRACTORS[name](payload) if j is not None][:PER_BOARD_CAP]

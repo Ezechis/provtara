@@ -13,7 +13,7 @@ py -3 run.py
 
 http://127.0.0.1:5055
 
-1. Open **Vacancies** (public) — listings from Remotive, Arbeitnow, RemoteOK, Jobicy, Himalayas, and Hacker News Jobs, plus curated IT jobs. We Work Remotely is excluded (it already sells auto-apply).  
+1. Open **Vacancies** (public) — listings from Remotive, Arbeitnow, RemoteOK, Jobicy, Himalayas, Hacker News Jobs, Working Nomads, The Muse, Python.org, Fossjobs, LaraJobs, and Berlin Startup Jobs, plus curated IT jobs. Boards that already sell auto-apply (We Work Remotely, 4dayweek.io) are excluded.  
 2. **Apply directly** on the official board URL, or **Auto-apply** (account + confirmed résumé; gate must pass)  
 3. Register → upload PDF/DOCX or paste or sample profile → confirm (unevidenced skills are struck)  
 4. Auto-apply prepares a true pack (max 10). You open the official listing. Provtara never clicks Submit.  

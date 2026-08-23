@@ -37,7 +37,13 @@ Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 | [Jobicy](https://jobicy.com) | `/api/v2/remote-jobs` |
 | [Himalayas](https://himalayas.app) | jobs API |
 | [Hacker News Jobs](https://news.ycombinator.com/jobs) | `hnrss.org/jobs` |
+| [Working Nomads](https://www.workingnomads.com) | `/api/exposed_jobs/` |
+| [The Muse](https://www.themuse.com) | public jobs API, Software Engineering |
+| [Python.org Jobs](https://www.python.org/jobs/) | RSS |
+| [Fossjobs](https://www.fossjobs.net) | RSS |
+| [LaraJobs](https://larajobs.com) | RSS |
+| [Berlin Startup Jobs](https://berlinstartupjobs.com) | RSS |
 
-We Work Remotely is not a source. It sells JobCopilot auto-apply, and “Open employer form” must not dump the candidate onto another auto-apply board. Listings whose apply URL still points at weworkremotely.com or jobcopilot.com are dropped.
+We Work Remotely and 4dayweek.io are not sources. They sell JobCopilot auto-apply, and “Open employer form” must not dump the candidate onto another auto-apply board. Listings whose apply URL still points at weworkremotely.com, jobcopilot.com, or 4dayweek.io are dropped.
 
 IT-only filter. Dedupe by apply URL. **Apply directly** goes to that official URL. **Auto-apply** prepares a true pack for gate-pass jobs, then you open the same URL. Provtara does not log into an ATS or press Submit.

@@ -313,6 +313,13 @@ def test_boards_page_lists_verified_sources(client):
     assert "We Work Remotely" not in body
     assert "weworkremotely.com" not in body
     assert "Hacker News Jobs" in body
+    assert "Working Nomads" in body
+    assert "The Muse" in body
+    assert "Python.org Jobs" in body
+    assert "Fossjobs" in body
+    assert "LaraJobs" in body
+    assert "Berlin Startup Jobs" in body
+    assert "4dayweek" not in body.lower()
     assert "https://remotive.com" in body
     assert "https://remoteok.com" in body
     assert "https://himalayas.app" in body

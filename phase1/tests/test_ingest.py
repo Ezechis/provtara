@@ -6,6 +6,9 @@ from phase1.ingest import (
     SOURCES,
     keep_listing,
     is_it_role,
+    job_from_feed,
+    job_from_muse,
+    job_from_nomads,
     job_from_remotive,
     merge_jobs,
 )
@@ -14,11 +17,25 @@ from phase1.catalog import all_jobs
 
 
 def test_verified_boards_are_wired():
-    expected = {"remotive", "arbeitnow", "remoteok", "jobicy", "himalayas", "hnjobs"}
+    expected = {
+        "remotive",
+        "arbeitnow",
+        "remoteok",
+        "jobicy",
+        "himalayas",
+        "hnjobs",
+        "workingnomads",
+        "themuse",
+        "pythonjobs",
+        "fossjobs",
+        "larajobs",
+        "berlinjobs",
+    }
     assert set(SOURCES) == expected
     assert set(BOARD_URLS) == set(SOURCES) == set(BOARD_HOMES)
     assert "wwr" not in SOURCES
     assert "We Work Remotely" not in SOURCES.values()
+    assert "4dayweek" not in SOURCES
 
 
 def _sample_job(**overrides):
@@ -52,12 +69,17 @@ def test_we_work_remotely_listings_are_dropped():
         id="himalayas-deadbeef",
         apply_url="https://jobcopilot.com/apply/xyz",
     )
+    week = _sample_job(
+        id="themuse-deadbeef",
+        apply_url="https://4dayweek.io/jobs/example",
+    )
     ok = _sample_job()
     assert keep_listing(wwr) is False
     assert keep_listing(via_other_board) is False
     assert keep_listing(copilot) is False
+    assert keep_listing(week) is False
     assert keep_listing(ok) is True
-    kept = all_jobs("/no/such/provtara-jobs-dir", [wwr, via_other_board, copilot, ok])
+    kept = all_jobs("/no/such/provtara-jobs-dir", [wwr, via_other_board, copilot, week, ok])
     ids = {j.id for j in kept}
     assert "wwr-deadbeef" not in ids
     assert "remotive-deadbeef" not in ids
@@ -156,6 +178,62 @@ def test_map_remotive_skips_non_it():
         "description": "Hit quota",
     }
     assert job_from_remotive(item) is None
+
+
+def test_map_working_nomads_it_job():
+    job = job_from_nomads(
+        {
+            "title": "Backend Engineer",
+            "company_name": "Nomad Co",
+            "url": "https://www.workingnomads.com/jobs/backend",
+            "description": "Python Django APIs",
+            "location": "Worldwide",
+            "category_name": "Programming",
+        }
+    )
+    assert job is not None
+    assert job.company == "Nomad Co"
+    assert job.id.startswith("workingnomads-")
+
+
+def test_map_muse_keeps_software_and_skips_custodian():
+    keep = job_from_muse(
+        {
+            "name": "Backend Engineer",
+            "company": {"name": "SpaceX"},
+            "refs": {"landing_page": "https://www.themuse.com/jobs/spacex/backend"},
+            "contents": "Python Django APIs",
+            "categories": [{"name": "Software Engineering"}],
+            "locations": [{"name": "Hawthorne, CA"}],
+        }
+    )
+    skip = job_from_muse(
+        {
+            "name": "Maintenance Custodian Associate",
+            "company": {"name": "Walmart"},
+            "refs": {"landing_page": "https://www.themuse.com/jobs/walmart/custodian"},
+            "contents": "Clean floors",
+            "categories": [{"name": "Installation, Maintenance, and Repairs"}],
+            "locations": [{"name": "Ellicott City, MD"}],
+        }
+    )
+    assert keep is not None
+    assert keep.company == "SpaceX"
+    assert skip is None
+
+
+def test_python_feed_parses_company_from_title():
+    job = job_from_feed(
+        "pythonjobs",
+        {
+            "title": "Software Engineer (Remote), Softech Associate",
+            "url": "https://www.python.org/jobs/8126/",
+            "description": "Python backend",
+        },
+    )
+    assert job is not None
+    assert job.company == "Softech Associate"
+    assert "Software Engineer" in job.title
 
 
 def test_merge_dedupes_by_apply_url():
