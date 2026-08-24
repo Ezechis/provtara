@@ -25,16 +25,19 @@
       {% if p.id == 'free' %}
         <p class="actions"><a class="btn secondary" href="{{ url_for('register') }}">Start free</a></p>
       {% elif user_email %}
-        <form method="post" action="{{ url_for('billing_request') }}">
+        <form method="post" action="{{ url_for('billing_checkout') }}" class="stack">
           <input type="hidden" name="plan" value="{{ p.id }}">
           <input type="hidden" name="currency" value="{{ currency }}">
-          <button class="btn" type="submit">Request {{ p.label }}</button>
+          <p class="actions">
+            <button class="btn" type="submit" name="period" value="month">Pay {{ p.month }} / month</button>
+            <button class="btn secondary" type="submit" name="period" value="year">Pay {{ p.year }} / year</button>
+          </p>
         </form>
       {% else %}
-        <p class="actions"><a class="btn" href="{{ url_for('register') }}">Create account</a></p>
+        <p class="actions"><a class="btn" href="{{ url_for('login') }}">Log in to pay</a></p>
       {% endif %}
     </article>
   {% endfor %}
 </div>
-<p class="muted">Paystack (NGN) and Stripe (USD) are next. Until then a request is stored and Free limits still apply. Step 6 stays off until a key is set.</p>
+<p class="muted">Naira checkout uses Paystack. US dollars use Stripe. The plan turns on only after the processor confirms payment. Step 6 stays off until an LLM key is set.</p>
 {% endblock %}

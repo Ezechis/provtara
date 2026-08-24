@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import sqlite3
@@ -52,15 +53,32 @@ from phase1.parse import (
 from phase1.mailer import qualified_digest, reset_message, send_mail, smtp_ready
 from phase0.pack import tailoring_notes
 from phase1.pack_files import markdown_to_docx, markdown_to_pdf
+from phase1.billing import (
+    BillingError,
+    amount_for,
+    checkout_label,
+    paystack_event_reference,
+    retrieve_stripe_session,
+    start_paystack,
+    start_stripe,
+    stripe_event_session_id,
+    verify_paystack_reference,
+    verify_paystack_signature,
+    verify_stripe_signature,
+)
 from phase1.plans import ORDER, PLANS, get_plan, money, pack_budget
 from phase1.store import (
     alert_already_sent,
     alert_users,
+    activate_payment,
     apply_status,
     clear_draft,
+    create_payment,
     create_user,
+    effective_plan_id,
     get_draft,
     get_pack,
+    get_payment,
     get_profile,
     get_user,
     get_user_by_email,
@@ -112,6 +130,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         JOBS_DIR=str(DEFAULT_JOBS),
         SAMPLE_PROFILE=str(SAMPLE_PROFILE),
         MAX_CONTENT_LENGTH=4 * 1024 * 1024,
+        PAYSTACK_SECRET_KEY=os.environ.get("PAYSTACK_SECRET_KEY", ""),
+        STRIPE_SECRET_KEY=os.environ.get("STRIPE_SECRET_KEY", ""),
+        STRIPE_WEBHOOK_SECRET=os.environ.get("STRIPE_WEBHOOK_SECRET", ""),
+        PUBLIC_BASE_URL=os.environ.get("PUBLIC_BASE_URL", ""),
     )
     if not debug:
         app.config.update(
@@ -217,11 +239,11 @@ def create_app(test_config: dict | None = None) -> Flask:
         if not uid:
             return get_plan("free")
         row = get_user(db(), uid)
-        return get_plan(row["plan"] if row else "free")
+        return get_plan(effective_plan_id(row))
 
     def _plan_for(uid: int) -> dict:
         row = get_user(db(), uid)
-        return get_plan(row["plan"] if row else "free")
+        return get_plan(effective_plan_id(row))
 
     def _notify_user(uid: int) -> int:
         if app.config.get("TESTING"):
@@ -233,7 +255,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         if not data:
             return 0
         profile = profile_from_dict(data)
-        plan = get_plan(row["plan"])
+        plan = get_plan(effective_plan_id(row))
         kind = plan["alerts"]
         last = row["last_alert_at"]
         if last and kind != "fast":
@@ -1043,7 +1065,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             flash("Alert preference saved. We only mail jobs that pass your confirmed résumé.")
             return redirect(url_for("account"))
         row = get_user(db(), uid)
-        plan = get_plan(row["plan"] if row else "free")
+        plan = get_plan(effective_plan_id(row))
         return render_template(
             "account.html",
             user=row,
@@ -1052,20 +1074,249 @@ def create_app(test_config: dict | None = None) -> Flask:
             smtp=smtp_ready(),
         )
 
+    def _public_origin() -> str:
+        configured = (app.config.get("PUBLIC_BASE_URL") or "").rstrip("/")
+        if configured:
+            return configured
+        return (request.url_root or "https://provtara.onrender.com").rstrip("/")
+
+    def _ensure_pending_payment(
+        *,
+        user_id: int,
+        provider: str,
+        reference: str,
+        plan: str,
+        currency: str,
+        period: str,
+        amount: int,
+    ) -> None:
+        if get_payment(db(), reference) is None:
+            create_payment(
+                db(),
+                user_id=user_id,
+                provider=provider,
+                reference=reference,
+                plan=plan,
+                currency=currency,
+                period=period,
+                amount=amount,
+            )
+
+    @app.post("/billing/checkout")
+    @login_required
+    def billing_checkout():
+        plan_id = (request.form.get("plan") or "").lower()
+        currency = (request.form.get("currency") or "usd").lower()
+        period = (request.form.get("period") or "month").lower()
+        if period not in {"month", "year"}:
+            period = "month"
+        if currency not in {"usd", "ngn"}:
+            currency = "usd"
+        if plan_id not in PLANS or plan_id == "free":
+            flash("Pick Basic, Pro, or Premium.")
+            return redirect(url_for("pricing", currency=currency))
+        user = get_user(db(), session["user_id"])
+        if user is None:
+            return redirect(url_for("login"))
+        amount, _ccy = amount_for(PLANS[plan_id], currency, period)
+        reference = "prv_" + secrets.token_hex(12)
+        origin = _public_origin()
+        metadata = {
+            "user_id": str(user["id"]),
+            "plan": plan_id,
+            "period": period,
+            "reference": reference,
+        }
+        try:
+            if currency == "ngn":
+                secret = app.config.get("PAYSTACK_SECRET_KEY") or ""
+                if not secret:
+                    flash("Naira checkout needs PAYSTACK_SECRET_KEY on this host.")
+                    return redirect(url_for("pricing", currency="ngn"))
+                started = start_paystack(
+                    secret=secret,
+                    email=user["email"],
+                    amount=amount,
+                    reference=reference,
+                    callback_url=origin + "/billing/paystack/callback",
+                    metadata=metadata,
+                )
+                provider = "paystack"
+            else:
+                secret = app.config.get("STRIPE_SECRET_KEY") or ""
+                if not secret:
+                    flash("USD checkout needs STRIPE_SECRET_KEY on this host.")
+                    return redirect(url_for("pricing", currency="usd"))
+                started = start_stripe(
+                    secret=secret,
+                    email=user["email"],
+                    amount=amount,
+                    success_url=origin + "/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}",
+                    cancel_url=origin + "/pricing?currency=usd",
+                    metadata=metadata,
+                    label=checkout_label(plan_id, period),
+                )
+                provider = "stripe"
+        except BillingError:
+            flash("Checkout could not start. Try again in a minute.")
+            return redirect(url_for("pricing", currency=currency))
+        ref = started.get("reference") or reference
+        _ensure_pending_payment(
+            user_id=user["id"],
+            provider=provider,
+            reference=ref,
+            plan=plan_id,
+            currency=currency,
+            period=period,
+            amount=amount,
+        )
+        set_plan_request(db(), user["id"], plan_id, currency)
+        return redirect(started["url"])
+
     @app.post("/billing/request")
     @login_required
     def billing_request():
-        plan = (request.form.get("plan") or "").lower()
-        currency = (request.form.get("currency") or "usd").lower()
-        if plan not in PLANS or plan == "free":
-            flash("Pick Basic, Pro, or Premium.")
-            return redirect(url_for("pricing"))
-        set_plan_request(db(), session["user_id"], plan, currency)
-        flash(
-            f"{PLANS[plan]['label']} requested in {currency.upper()}. "
-            "Card billing is not live on this workshop yet — you stay on Free limits until Paystack/Stripe is wired."
-        )
+        return billing_checkout()
+
+    @app.get("/billing/paystack/callback")
+    @login_required
+    def paystack_callback():
+        reference = (request.args.get("reference") or "").strip()
+        secret = app.config.get("PAYSTACK_SECRET_KEY") or ""
+        if not reference or not secret:
+            flash("Paystack did not send a payment reference.")
+            return redirect(url_for("pricing", currency="ngn"))
+        try:
+            info = verify_paystack_reference(secret=secret, reference=reference)
+        except BillingError:
+            flash("Paystack could not confirm that payment.")
+            return redirect(url_for("pricing", currency="ngn"))
+        if get_payment(db(), info["reference"]) is None and info.get("user_id") and info.get("plan"):
+            amount, _ = amount_for(PLANS[info["plan"]], "ngn", info.get("period") or "month")
+            create_payment(
+                db(),
+                user_id=info["user_id"],
+                provider="paystack",
+                reference=info["reference"],
+                plan=info["plan"],
+                currency="ngn",
+                period=info.get("period") or "month",
+                amount=amount,
+            )
+        if activate_payment(db(), info["reference"]):
+            flash("Payment received. Your plan is active. The gate still will not invent skills.")
+        else:
+            flash("That payment was already applied.")
         return redirect(url_for("account"))
+
+    @app.get("/billing/stripe/success")
+    @login_required
+    def stripe_success():
+        session_id = (request.args.get("session_id") or "").strip()
+        secret = app.config.get("STRIPE_SECRET_KEY") or ""
+        if not session_id or not secret:
+            flash("Stripe did not send a session.")
+            return redirect(url_for("pricing", currency="usd"))
+        try:
+            info = retrieve_stripe_session(secret=secret, session_id=session_id)
+        except BillingError:
+            flash("Stripe could not confirm that payment.")
+            return redirect(url_for("pricing", currency="usd"))
+        ref = info.get("reference") or session_id
+        if get_payment(db(), ref) is None and info.get("user_id") and info.get("plan"):
+            amount, _ = amount_for(PLANS[info["plan"]], "usd", info.get("period") or "month")
+            create_payment(
+                db(),
+                user_id=info["user_id"],
+                provider="stripe",
+                reference=ref,
+                plan=info["plan"],
+                currency="usd",
+                period=info.get("period") or "month",
+                amount=amount,
+            )
+        if activate_payment(db(), ref):
+            flash("Payment received. Your plan is active. The gate still will not invent skills.")
+        else:
+            flash("That payment was already applied.")
+        return redirect(url_for("account"))
+
+    @app.post("/billing/paystack/webhook")
+    def paystack_webhook():
+        raw = request.get_data()
+        secret = app.config.get("PAYSTACK_SECRET_KEY") or ""
+        if not verify_paystack_signature(secret, raw, request.headers.get("X-Paystack-Signature")):
+            return ("bad signature", 400)
+        try:
+            payload = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return ("bad json", 400)
+        ref = paystack_event_reference(payload)
+        if not ref:
+            return ("ignored", 200)
+        data = payload.get("data") or {}
+        meta = data.get("metadata") or {}
+        if get_payment(db(), ref) is None:
+            uid = None
+            try:
+                uid = int(meta.get("user_id"))
+            except (TypeError, ValueError):
+                uid = None
+            plan = meta.get("plan")
+            period = meta.get("period") or "month"
+            if uid and plan in PLANS and plan != "free":
+                amount, _ = amount_for(PLANS[plan], "ngn", period)
+                create_payment(
+                    db(),
+                    user_id=uid,
+                    provider="paystack",
+                    reference=ref,
+                    plan=plan,
+                    currency="ngn",
+                    period=period,
+                    amount=amount,
+                )
+        activate_payment(db(), ref)
+        return ("ok", 200)
+
+    @app.post("/billing/stripe/webhook")
+    def stripe_webhook():
+        raw = request.get_data()
+        secret = app.config.get("STRIPE_WEBHOOK_SECRET") or app.config.get("STRIPE_SECRET_KEY") or ""
+        if not verify_stripe_signature(secret, raw, request.headers.get("Stripe-Signature")):
+            return ("bad signature", 400)
+        try:
+            payload = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return ("bad json", 400)
+        session_id = stripe_event_session_id(payload)
+        if not session_id:
+            return ("ignored", 200)
+        obj = payload.get("data", {}).get("object") or {}
+        meta = obj.get("metadata") or {}
+        ref = meta.get("reference") or session_id
+        if get_payment(db(), ref) is None:
+            uid = None
+            try:
+                uid = int(meta.get("user_id") or obj.get("client_reference_id"))
+            except (TypeError, ValueError):
+                uid = None
+            plan = meta.get("plan")
+            period = meta.get("period") or "month"
+            if uid and plan in PLANS and plan != "free":
+                amount, _ = amount_for(PLANS[plan], "usd", period)
+                create_payment(
+                    db(),
+                    user_id=uid,
+                    provider="stripe",
+                    reference=ref,
+                    plan=plan,
+                    currency="usd",
+                    period=period,
+                    amount=amount,
+                )
+        activate_payment(db(), ref)
+        return ("ok", 200)
 
     def _board_refresh_loop():
         while True:

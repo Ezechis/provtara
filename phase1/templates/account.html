@@ -2,7 +2,7 @@
 {% block title %}Account — Provtara{% endblock %}
 {% block body %}
 <h1>Account</h1>
-<p class="meta">{{ user.email }} · plan {{ plan.label }} · {{ packs_used }} / {{ plan.packs_month }} packs this month</p>
+<p class="meta">{{ user.email }} · plan {{ plan.label }}{% if user.paid_until %} · paid through {{ user.paid_until[:10] }}{% endif %} · {{ packs_used }} / {{ plan.packs_month }} packs this month</p>
 <form method="post" class="stack">
   <label class="pick">
     <input type="checkbox" name="alerts" value="on" {% if user.alerts_on %}checked{% endif %}>

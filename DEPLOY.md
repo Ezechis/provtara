@@ -27,6 +27,22 @@ Create a long-lived key at https://dashboard.render.com/u/settings#api-keys if t
 
 Blueprint is `render.yaml`. `run.py` listens on `0.0.0.0` and `$PORT`.
 
+## Billing (Paystack NGN, Stripe USD)
+
+Set these on the Render service (Environment), then add webhook URLs at each processor:
+
+| Env | Used for |
+|---|---|
+| `PAYSTACK_SECRET_KEY` | Naira checkout (`sk_live_…` or `sk_test_…`) |
+| `STRIPE_SECRET_KEY` | USD Checkout (`sk_live_…` or `sk_test_…`) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe `whsec_…` for `/billing/stripe/webhook` |
+| `PUBLIC_BASE_URL` | `https://provtara.onrender.com` so callbacks are not `http://0.0.0.0` |
+
+Paystack webhook URL: `https://provtara.onrender.com/billing/paystack/webhook`  
+Stripe webhook URL: `https://provtara.onrender.com/billing/stripe/webhook` (event: `checkout.session.completed`)
+
+The plan is written only after Paystack/Stripe confirms payment. If a key is missing, that currency’s Pay button says so and the account stays Free.
+
 Job listings auto-refresh every **4 hours**: a visitor hitting a stale catalog triggers a background pull, the app also loops on that interval while it is awake, and GitHub Actions (`refresh-boards.yml`) POSTs `/jobs/refresh` on `0 */4 * * *` UTC so Render still updates after the free service sleeps. Manual Refresh on Vacancies uses the same 4-hour gate.
 
 ## Job sources (no API keys)

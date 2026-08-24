@@ -29,7 +29,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             currency TEXT NOT NULL DEFAULT 'usd',
             alerts_on INTEGER NOT NULL DEFAULT 1,
             last_alert_at TEXT,
-            plan_requested TEXT
+            plan_requested TEXT,
+            paid_until TEXT
         );
         CREATE TABLE IF NOT EXISTS profiles (
             user_id INTEGER PRIMARY KEY,
@@ -87,6 +88,25 @@ def init_db(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "users", "alerts_on", "INTEGER NOT NULL DEFAULT 1")
     _ensure_column(conn, "users", "last_alert_at", "TEXT")
     _ensure_column(conn, "users", "plan_requested", "TEXT")
+    _ensure_column(conn, "users", "paid_until", "TEXT")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            provider TEXT NOT NULL,
+            reference TEXT NOT NULL UNIQUE,
+            plan TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            period TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            paid_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+        """
+    )
     conn.commit()
 
 
@@ -372,6 +392,86 @@ def set_plan_request(conn: sqlite3.Connection, user_id: int, plan: str, currency
 def set_plan(conn: sqlite3.Connection, user_id: int, plan: str) -> None:
     conn.execute("UPDATE users SET plan = ? WHERE id = ?", (plan, user_id))
     conn.commit()
+
+
+def effective_plan_id(row) -> str:
+    if row is None:
+        return "free"
+    plan = (row["plan"] or "free").lower()
+    if plan == "free":
+        return "free"
+    until = None
+    try:
+        until = row["paid_until"]
+    except (KeyError, IndexError):
+        until = None
+    if not until:
+        return "free"
+    try:
+        ts = datetime.fromisoformat(str(until))
+    except ValueError:
+        return "free"
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    if ts < datetime.now(timezone.utc):
+        return "free"
+    return plan
+
+
+def create_payment(
+    conn: sqlite3.Connection,
+    *,
+    user_id: int,
+    provider: str,
+    reference: str,
+    plan: str,
+    currency: str,
+    period: str,
+    amount: int,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO payments (
+            user_id, provider, reference, plan, currency, period, amount, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        """,
+        (user_id, provider, reference, plan, currency, period, amount, now()),
+    )
+    conn.commit()
+
+
+def get_payment(conn: sqlite3.Connection, reference: str):
+    return conn.execute(
+        "SELECT * FROM payments WHERE reference = ?", (reference,)
+    ).fetchone()
+
+
+def activate_payment(conn: sqlite3.Connection, reference: str) -> bool:
+    """Mark a pending payment paid and set the user's plan. False if already applied."""
+    from phase1.billing import paid_until_iso
+
+    row = get_payment(conn, reference)
+    if row is None:
+        return False
+    if row["status"] == "paid":
+        return False
+    until = paid_until_iso(row["period"])
+    conn.execute(
+        """
+        UPDATE payments SET status = 'paid', paid_at = ? WHERE reference = ?
+        """,
+        (now(), reference),
+    )
+    conn.execute(
+        """
+        UPDATE users
+        SET plan = ?, currency = ?, paid_until = ?, plan_requested = NULL
+        WHERE id = ?
+        """,
+        (row["plan"], row["currency"], until, row["user_id"]),
+    )
+    conn.commit()
+    return True
 
 
 def packs_this_month(conn: sqlite3.Connection, user_id: int) -> int:

@@ -18,3 +18,5 @@ services:
         value: "1"
       - key: SECRET_KEY
         generateValue: true
+      - key: PUBLIC_BASE_URL
+        value: https://provtara.onrender.com
